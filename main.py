@@ -65,7 +65,7 @@ def transcribe_audio(audio_file_path):
             transcription = client.audio.transcriptions.create(
                 file=(os.path.basename(audio_file_path), file.read()),
                 model="whisper-large-v3",
-                prompt="""The audio is by a programmer discussing programming issues, the programmer mostly uses python and might mention python libraries or reference code in his speech.""",
+                prompt="""The audio is a conversation between doctors and administrative staff at a medical institution, and may use medical terminology.""",
                 response_format="text",
                 language="ja",
             )
