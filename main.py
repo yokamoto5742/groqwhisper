@@ -7,6 +7,9 @@ import pyautogui
 import pyperclip
 from groq import Groq
 
+VERSION = "1.0.0"
+LAST_UPDATED = "2024/09/08"
+
 # Set up Groq client
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
