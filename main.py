@@ -7,7 +7,7 @@ import pyautogui
 import pyperclip
 from groq import Groq
 
-VERSION = "1.0.0"
+VERSION = "0.0.4"
 LAST_UPDATED = "2024/09/08"
 
 # Set up Groq client
@@ -61,21 +61,25 @@ def save_audio(frames, sample_rate):
 
 def transcribe_audio(audio_file_path):
     """
-    Transcribe audio using Groq's Whisper implementation.
+    Transcribe audio using Groq's Whisper implementation with an optimized prompt for medical terminology.
     """
     try:
         with open(audio_file_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
                 file=(os.path.basename(audio_file_path), file.read()),
                 model="whisper-large-v3",
-                prompt="""The audio is a conversation between doctors and administrative staff at a medical institution, and may use medical terminology.""",
+                prompt="""眼科医師の会話です。専門的な眼科用語と医学用語が使用されます。
+                主な用語：眼圧, 網膜, 緑内障, 白内障, 黄斑変性, 視神経, 角膜, 虹彩, 水晶体, 結膜, 
+                視力, 屈折, 眼底, 瞳孔, 硝子体, 視野, 眼筋, 涙腺, 眼窩, 斜視
+                これらの用語と数値・測定値の正確な認識に注意してください。""",
                 response_format="text",
                 language="ja",
             )
-        return transcription  # This is now directly the transcription text
+        return transcription
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return None
+
 
 
 def copy_transcription_to_clipboard(text):

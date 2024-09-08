@@ -15,8 +15,8 @@ def build_executable():
         "main.py"
     ])
 
-    # 必要なファイルをdistフォルダにコピー
-    shutil.copy("config.ini", "dist/RenamePDF/")
+    # # 必要なファイルをdistフォルダにコピー
+    shutil.copy("config.ini", "dist/GroqWhisper")
 
     print(f"Executable built successfully. Version: {new_version}")
 
