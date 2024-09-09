@@ -81,7 +81,6 @@ def transcribe_audio(audio_file_path):
         return None
 
 
-
 def copy_transcription_to_clipboard(text):
     """
     Copy the transcribed text to clipboard using pyperclip.
