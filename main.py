@@ -6,9 +6,10 @@ import pyperclip
 import tkinter as tk
 import threading
 import keyboard
+import pyautogui
 from groq import Groq
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 LAST_UPDATED = "2024/09/09"
 
 # Groqクライアントのセットアップ
@@ -95,9 +96,11 @@ def transcribe_audio(audio_file_path):
         return None
 
 
-def copy_transcription_to_clipboard(text):
+def copy_and_paste_transcription(text):
     if text:
         pyperclip.copy(text)
+        # 少し待機してからCtrl+Vを実行
+        threading.Timer(0.5, lambda: pyautogui.hotkey('ctrl', 'v')).start()
 
 
 class AudioRecorderGUI:
@@ -142,7 +145,7 @@ class AudioRecorderGUI:
         try:
             frames, sample_rate = self.recorder.stop_recording()
             self.record_button.config(text='録音開始')
-            self.status_label.config(text="Pauseキーで録音開始/停止")
+            self.status_label.config(text="文字起こし中...")
             threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
         except Exception as e:
             print(f"録音の停止中にエラーが発生しました: {str(e)}")
@@ -156,10 +159,12 @@ class AudioRecorderGUI:
             transcription = transcribe_audio(temp_audio_file)
             if transcription:
                 self.master.after(0, self.update_transcription, transcription)
+                copy_and_paste_transcription(transcription)
             try:
                 os.unlink(temp_audio_file)
             except Exception as e:
                 print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
+        self.status_label.config(text="Pauseキーで録音開始/停止")
 
     def update_transcription(self, text):
         self.transcription_text.delete('1.0', tk.END)
@@ -168,8 +173,8 @@ class AudioRecorderGUI:
 
     def copy_to_clipboard(self):
         text = self.transcription_text.get('1.0', tk.END).strip()
-        copy_transcription_to_clipboard(text)
-        print("テキストをクリップボードにコピーしました。")
+        copy_and_paste_transcription(text)
+        print("テキストをクリップボードにコピーし、貼り付けました。")
 
 
 def main():
