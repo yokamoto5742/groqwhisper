@@ -1,7 +1,0 @@
-rapidfuzz
-altgraph
-pywin32-ctypes
-pyinstaller
-pyinstaller-hooks-contrib
-pefile
-levenshtein

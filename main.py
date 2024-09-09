@@ -2,67 +2,80 @@ import os
 import tempfile
 import wave
 import pyaudio
-import keyboard
-import pyautogui
 import pyperclip
+import tkinter as tk
+import threading
 from groq import Groq
 
-VERSION = "0.0.0"
-LAST_UPDATED = "2024/09/08"
+VERSION = "0.1.0"
+LAST_UPDATED = "2024/09/09"
 
-# Set up Groq client
+# Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 
-def record_audio(sample_rate=16000, channels=1, chunk=1024):
-    """
-    Record audio from the microphone while the PAUSE button is held down.
-    """
-    p = pyaudio.PyAudio()
-    stream = p.open(
-        format=pyaudio.paInt16,
-        channels=channels,
-        rate=sample_rate,
-        input=True,
-        frames_per_buffer=chunk,
-    )
+class AudioRecorder:
+    def __init__(self, sample_rate=16000, channels=1, chunk=1024):
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.chunk = chunk
+        self.frames = []
+        self.is_recording = False
+        self.p = None
+        self.stream = None
 
-    print("Press and hold the PAUSE button to start recording...")
-    frames = []
+    def start_recording(self):
+        self.p = pyaudio.PyAudio()
+        self.stream = self.p.open(
+            format=pyaudio.paInt16,
+            channels=self.channels,
+            rate=self.sample_rate,
+            input=True,
+            frames_per_buffer=self.chunk,
+        )
+        self.is_recording = True
+        self.frames = []
+        print("録音開始...")
 
-    keyboard.wait("pause")  # Wait for PAUSE button to be pressed
-    print("Recording... (Release PAUSE to stop)")
+    def stop_recording(self):
+        self.is_recording = False
+        if self.stream:
+            self.stream.stop_stream()
+            self.stream.close()
+        if self.p:
+            self.p.terminate()
+        print("録音終了.")
+        return self.frames, self.sample_rate
 
-    while keyboard.is_pressed("pause"):
-        data = stream.read(chunk)
-        frames.append(data)
-
-    print("Recording finished.")
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-
-    return frames, sample_rate
+    def record(self):
+        while self.is_recording:
+            try:
+                data = self.stream.read(self.chunk)
+                self.frames.append(data)
+            except Exception as e:
+                print(f"録音中にエラーが発生しました: {str(e)}")
+                self.is_recording = False
+                break
 
 
 def save_audio(frames, sample_rate):
-    """
-    Save recorded audio to a temporary WAV file.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-        wf = wave.open(temp_audio.name, "wb")
-        wf.setnchannels(1)
-        wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
-        wf.setframerate(sample_rate)
-        wf.writeframes(b"".join(frames))
-        wf.close()
-        return temp_audio.name
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+            wf = wave.open(temp_audio.name, "wb")
+            wf.setnchannels(1)
+            wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
+            wf.setframerate(sample_rate)
+            wf.writeframes(b"".join(frames))
+            wf.close()
+            return temp_audio.name
+    except Exception as e:
+        print(f"音声ファイルの保存中にエラーが発生しました: {str(e)}")
+        return None
 
 
 def transcribe_audio(audio_file_path):
-    """
-    Transcribe audio using Groq's Whisper implementation with an optimized prompt for medical terminology.
-    """
+    if not audio_file_path:
+        return None
     try:
         with open(audio_file_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
@@ -77,44 +90,74 @@ def transcribe_audio(audio_file_path):
             )
         return transcription
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        print(f"文字起こし中にエラーが発生しました: {str(e)}")
         return None
 
 
 def copy_transcription_to_clipboard(text):
-    """
-    Copy the transcribed text to clipboard using pyperclip.
-    """
-    pyperclip.copy(text)
-    pyautogui.hotkey("ctrl", "v")
+    if text:
+        pyperclip.copy(text)
+
+
+class AudioRecorderGUI:
+    def __init__(self, master):
+        self.master = master
+        master.title('眼科医師用音声録音・文字起こしアプリ')
+
+        self.recorder = AudioRecorder()
+
+        self.record_button = tk.Button(master, text='録音開始', command=self.toggle_recording)
+        self.record_button.pack(pady=10)
+
+        self.transcription_text = tk.Text(master, height=10, width=50)
+        self.transcription_text.pack(pady=10)
+
+        self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
+        self.copy_button.pack(pady=5)
+
+    def toggle_recording(self):
+        if not self.recorder.is_recording:
+            try:
+                self.recorder.start_recording()
+                self.record_button.config(text='録音停止')
+                threading.Thread(target=self.recorder.record, daemon=True).start()
+            except Exception as e:
+                print(f"録音の開始中にエラーが発生しました: {str(e)}")
+                self.record_button.config(text='録音開始')
+        else:
+            try:
+                frames, sample_rate = self.recorder.stop_recording()
+                self.record_button.config(text='録音開始')
+                threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
+            except Exception as e:
+                print(f"録音の停止中にエラーが発生しました: {str(e)}")
+
+    def process_audio(self, frames, sample_rate):
+        temp_audio_file = save_audio(frames, sample_rate)
+        if temp_audio_file:
+            transcription = transcribe_audio(temp_audio_file)
+            if transcription:
+                self.master.after(0, self.update_transcription, transcription)
+            try:
+                os.unlink(temp_audio_file)
+            except Exception as e:
+                print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
+
+    def update_transcription(self, text):
+        self.transcription_text.delete('1.0', tk.END)
+        self.transcription_text.insert(tk.END, text)
+        self.transcription_text.see(tk.END)
+
+    def copy_to_clipboard(self):
+        text = self.transcription_text.get('1.0', tk.END).strip()
+        copy_transcription_to_clipboard(text)
+        print("テキストをクリップボードにコピーしました。")
 
 
 def main():
-    while True:
-        # Record audio
-        frames, sample_rate = record_audio()
-
-        # Save audio to temporary file
-        temp_audio_file = save_audio(frames, sample_rate)
-
-        # Transcribe audio
-        print("Transcribing...")
-        transcription = transcribe_audio(temp_audio_file)
-
-        # Copy transcription to clipboard
-        if transcription:
-            print("\nTranscription:")
-            print(transcription)
-            print("Copying transcription to clipboard...")
-            copy_transcription_to_clipboard(transcription)
-            print("Transcription copied to clipboard and pasted into the application.")
-        else:
-            print("Transcription failed.")
-
-        # Clean up temporary file
-        os.unlink(temp_audio_file)
-
-        print("\nReady for next recording. Press PAUSE to start.")
+    root = tk.Tk()
+    gui = AudioRecorderGUI(root)
+    root.mainloop()
 
 
 if __name__ == "__main__":
