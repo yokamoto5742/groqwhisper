@@ -8,19 +8,34 @@ import threading
 import keyboard
 import pyautogui
 from groq import Groq
+import configparser
 
 VERSION = "0.3.0"
 LAST_UPDATED = "2024/09/09"
 
+# 設定ファイルの読み込み
+config = configparser.ConfigParser()
+with open('config.ini', 'r', encoding='utf-8') as f:
+    config.read_file(f)
+
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
+# 置換のマッピングを定義
+replacements = dict(config['REPLACEMENTS'])
+
+
+def replace_text(text, replacements):
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 
 class AudioRecorder:
-    def __init__(self, sample_rate=16000, channels=1, chunk=1024):
-        self.sample_rate = sample_rate
-        self.channels = channels
-        self.chunk = chunk
+    def __init__(self):
+        self.sample_rate = int(config['AUDIO']['SAMPLE_RATE'])
+        self.channels = int(config['AUDIO']['CHANNELS'])
+        self.chunk = int(config['AUDIO']['CHUNK'])
         self.frames = []
         self.is_recording = False
         self.p = None
@@ -64,7 +79,7 @@ def save_audio(frames, sample_rate):
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
             wf = wave.open(temp_audio.name, "wb")
-            wf.setnchannels(1)
+            wf.setnchannels(int(config['AUDIO']['CHANNELS']))
             wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
             wf.setframerate(sample_rate)
             wf.writeframes(b"".join(frames))
@@ -82,13 +97,10 @@ def transcribe_audio(audio_file_path):
         with open(audio_file_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
                 file=(os.path.basename(audio_file_path), file.read()),
-                model="whisper-large-v3",
-                prompt="""眼科医師の会話です。専門的な眼科用語と医学用語が使用されます。
-                主な用語：眼圧, 網膜, 緑内障, 白内障, 黄斑変性, 視神経, 角膜, 虹彩, 水晶体, 結膜, 
-                視力, 屈折, 眼底, 瞳孔, 硝子体, 視野, 眼筋, 涙腺, 眼窩, 斜視
-                これらの用語と数値・測定値の正確な認識に注意してください。""",
+                model=config['WHISPER']['MODEL'],
+                prompt=config['WHISPER']['PROMPT'],
                 response_format="text",
-                language="ja",
+                language=config['WHISPER']['LANGUAGE'],
             )
         return transcription
     except Exception as e:
@@ -98,9 +110,12 @@ def transcribe_audio(audio_file_path):
 
 def copy_and_paste_transcription(text):
     if text:
-        pyperclip.copy(text)
-        # 少し待機してからCtrl+Vを実行
-        threading.Timer(0.5, lambda: pyautogui.hotkey('ctrl', 'v')).start()
+        replaced_text = replace_text(text, replacements)
+        pyperclip.copy(replaced_text)
+        # config.iniから待機時間を読み込む
+        paste_delay = float(config['CLIPBOARD']['PASTE_DELAY'])
+        # 設定された待機時間後にCtrl+Vを実行
+        threading.Timer(paste_delay, lambda: pyautogui.hotkey('ctrl', 'v')).start()
 
 
 class AudioRecorderGUI:
@@ -158,8 +173,9 @@ class AudioRecorderGUI:
         if temp_audio_file:
             transcription = transcribe_audio(temp_audio_file)
             if transcription:
-                self.master.after(0, self.update_transcription, transcription)
-                copy_and_paste_transcription(transcription)
+                replaced_transcription = replace_text(transcription, replacements)
+                self.master.after(0, self.update_transcription, replaced_transcription)
+                copy_and_paste_transcription(replaced_transcription)
             try:
                 os.unlink(temp_audio_file)
             except Exception as e:
