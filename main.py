@@ -5,9 +5,10 @@ import pyaudio
 import pyperclip
 import tkinter as tk
 import threading
+import keyboard
 from groq import Groq
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 LAST_UPDATED = "2024/09/09"
 
 # Groqクライアントのセットアップ
@@ -115,22 +116,39 @@ class AudioRecorderGUI:
         self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
         self.copy_button.pack(pady=5)
 
+        self.status_label = tk.Label(master, text="Pauseキーで録音開始/停止")
+        self.status_label.pack(pady=5)
+
+        # Pauseキーのイベントリスナーを設定
+        keyboard.on_press_key("pause", self.on_pause_key)
+
     def toggle_recording(self):
         if not self.recorder.is_recording:
-            try:
-                self.recorder.start_recording()
-                self.record_button.config(text='録音停止')
-                threading.Thread(target=self.recorder.record, daemon=True).start()
-            except Exception as e:
-                print(f"録音の開始中にエラーが発生しました: {str(e)}")
-                self.record_button.config(text='録音開始')
+            self.start_recording()
         else:
-            try:
-                frames, sample_rate = self.recorder.stop_recording()
-                self.record_button.config(text='録音開始')
-                threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
-            except Exception as e:
-                print(f"録音の停止中にエラーが発生しました: {str(e)}")
+            self.stop_recording()
+
+    def start_recording(self):
+        try:
+            self.recorder.start_recording()
+            self.record_button.config(text='録音停止')
+            self.status_label.config(text="録音中... (Pauseキーで停止)")
+            threading.Thread(target=self.recorder.record, daemon=True).start()
+        except Exception as e:
+            print(f"録音の開始中にエラーが発生しました: {str(e)}")
+            self.record_button.config(text='録音開始')
+
+    def stop_recording(self):
+        try:
+            frames, sample_rate = self.recorder.stop_recording()
+            self.record_button.config(text='録音開始')
+            self.status_label.config(text="Pauseキーで録音開始/停止")
+            threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
+        except Exception as e:
+            print(f"録音の停止中にエラーが発生しました: {str(e)}")
+
+    def on_pause_key(self, e):
+        self.master.after(0, self.toggle_recording)
 
     def process_audio(self, frames, sample_rate):
         temp_audio_file = save_audio(frames, sample_rate)
