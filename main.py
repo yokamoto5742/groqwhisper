@@ -10,8 +10,8 @@ import pyautogui
 from groq import Groq
 import configparser
 
-VERSION = "0.3.0"
-LAST_UPDATED = "2024/09/09"
+VERSION = "0.0.0"
+LAST_UPDATED = "2024/09/10"
 
 # 設定ファイルの読み込み
 config = configparser.ConfigParser()
@@ -195,7 +195,7 @@ class AudioRecorderGUI:
 
 def main():
     root = tk.Tk()
-    gui = AudioRecorderGUI(root)
+    AudioRecorderGUI(root)
     root.mainloop()
 
 
