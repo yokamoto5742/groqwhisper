@@ -20,6 +20,8 @@ with open('config.ini', 'r', encoding='utf-8') as f:
 
 replacements = dict(config['REPLACEMENTS'])
 start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
+TOGGLE_RECORDING_KEY = config['KEYS']['TOGGLE_RECORDING']
+EXIT_APP_KEY = config['KEYS']['EXIT_APP']
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -134,11 +136,11 @@ class AudioRecorderGUI:
         self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
         self.copy_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text="Pauseキーで録音開始/停止、Escキーで終了")
+        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
-        keyboard.on_press_key("pause", self.on_pause_key)
-        keyboard.on_press_key("esc", self.on_esc_key)
+        keyboard.on_press_key(TOGGLE_RECORDING_KEY, self.on_toggle_key)
+        keyboard.on_press_key(EXIT_APP_KEY, self.on_exit_key)
 
         if start_minimized:
             self.master.iconify()
@@ -198,6 +200,12 @@ class AudioRecorderGUI:
     def on_esc_key(self, e):
         self.master.after(0, self.close_application)
 
+    def on_toggle_key(self, e):
+        self.master.after(0, self.toggle_recording)
+
+    def on_exit_key(self, e):
+        self.master.after(0, self.close_application)
+
     def close_application(self):
         if self.recorder.is_recording:
             self.stop_recording()
@@ -206,7 +214,8 @@ class AudioRecorderGUI:
 
 def main():
     root = tk.Tk()
-    AudioRecorderGUI(root)
+    app = AudioRecorderGUI(root)
+    root.protocol("WM_DELETE_WINDOW", app.close_application)
     root.mainloop()
 
 
