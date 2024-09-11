@@ -18,11 +18,11 @@ config = configparser.ConfigParser()
 with open('config.ini', 'r', encoding='utf-8') as f:
     config.read_file(f)
 
+replacements = dict(config['REPLACEMENTS'])
+start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
+
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
-# 置換のマッピングを定義
-replacements = dict(config['REPLACEMENTS'])
 
 
 def replace_text(text, replacements):
@@ -137,8 +137,10 @@ class AudioRecorderGUI:
         self.status_label = tk.Label(master, text="Pauseキーで録音開始/停止")
         self.status_label.pack(pady=5)
 
-        # Pauseキーのイベントリスナーを設定
         keyboard.on_press_key("pause", self.on_pause_key)
+
+        if start_minimized:
+            self.master.iconify()
 
     def toggle_recording(self):
         if not self.recorder.is_recording:
