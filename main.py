@@ -134,10 +134,11 @@ class AudioRecorderGUI:
         self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
         self.copy_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text="Pauseキーで録音開始/停止")
+        self.status_label = tk.Label(master, text="Pauseキーで録音開始/停止、Escキーで終了")
         self.status_label.pack(pady=5)
 
         keyboard.on_press_key("pause", self.on_pause_key)
+        keyboard.on_press_key("esc", self.on_esc_key)
 
         if start_minimized:
             self.master.iconify()
@@ -193,6 +194,14 @@ class AudioRecorderGUI:
         text = self.transcription_text.get('1.0', tk.END).strip()
         copy_and_paste_transcription(text)
         print("テキストをクリップボードにコピーし、貼り付けました。")
+
+    def on_esc_key(self, e):
+        self.master.after(0, self.close_application)
+
+    def close_application(self):
+        if self.recorder.is_recording:
+            self.stop_recording()
+        self.master.quit()
 
 
 def main():
