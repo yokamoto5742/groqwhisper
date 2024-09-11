@@ -10,8 +10,8 @@ import pyautogui
 from groq import Groq
 import configparser
 
-VERSION = "0.0.0"
-LAST_UPDATED = "2024/09/10"
+VERSION = "0.0.1"
+LAST_UPDATED = "2024/09/11"
 
 # 設定ファイルの読み込み
 config = configparser.ConfigParser()
@@ -136,6 +136,9 @@ class AudioRecorderGUI:
         self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
         self.copy_button.pack(pady=5)
 
+        self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
+        self.clear_button.pack(pady=5)
+
         self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
@@ -155,7 +158,7 @@ class AudioRecorderGUI:
         try:
             self.recorder.start_recording()
             self.record_button.config(text='録音停止')
-            self.status_label.config(text="録音中... (Pauseキーで停止)")
+            self.status_label.config(text=f"録音中... ({TOGGLE_RECORDING_KEY}キーで停止)")
             threading.Thread(target=self.recorder.record, daemon=True).start()
         except Exception as e:
             print(f"録音の開始中にエラーが発生しました: {str(e)}")
@@ -170,25 +173,24 @@ class AudioRecorderGUI:
         except Exception as e:
             print(f"録音の停止中にエラーが発生しました: {str(e)}")
 
-    def on_pause_key(self, e):
-        self.master.after(0, self.toggle_recording)
-
     def process_audio(self, frames, sample_rate):
         temp_audio_file = save_audio(frames, sample_rate)
         if temp_audio_file:
             transcription = transcribe_audio(temp_audio_file)
             if transcription:
                 replaced_transcription = replace_text(transcription, replacements)
-                self.master.after(0, self.update_transcription, replaced_transcription)
+                self.master.after(0, self.append_transcription, replaced_transcription)
                 copy_and_paste_transcription(replaced_transcription)
             try:
                 os.unlink(temp_audio_file)
             except Exception as e:
                 print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
-        self.status_label.config(text="Pauseキーで録音開始/停止")
+        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止")
 
-    def update_transcription(self, text):
-        self.transcription_text.delete('1.0', tk.END)
+    def append_transcription(self, text):
+        current_text = self.transcription_text.get('1.0', tk.END).strip()
+        if current_text:
+            self.transcription_text.insert(tk.END, "")
         self.transcription_text.insert(tk.END, text)
         self.transcription_text.see(tk.END)
 
@@ -197,8 +199,9 @@ class AudioRecorderGUI:
         copy_and_paste_transcription(text)
         print("テキストをクリップボードにコピーし、貼り付けました。")
 
-    def on_esc_key(self, e):
-        self.master.after(0, self.close_application)
+    def clear_text(self):
+        self.transcription_text.delete('1.0', tk.END)
+        print("テキストをクリアしました。")
 
     def on_toggle_key(self, e):
         self.master.after(0, self.toggle_recording)
