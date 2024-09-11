@@ -4,13 +4,14 @@ import wave
 import pyaudio
 import pyperclip
 import tkinter as tk
+from tkinter import messagebox
 import threading
 import keyboard
 import pyautogui
 from groq import Groq
 import configparser
 
-VERSION = "0.0.1"
+VERSION = "0.0.5"
 LAST_UPDATED = "2024/09/11"
 
 # 設定ファイルの読み込み
@@ -22,6 +23,7 @@ replacements = dict(config['REPLACEMENTS'])
 start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
 TOGGLE_RECORDING_KEY = config['KEYS']['TOGGLE_RECORDING']
 EXIT_APP_KEY = config['KEYS']['EXIT_APP']
+AUTO_STOP_TIMER = int(config['RECORDING']['AUTO_STOP_TIMER'])
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -126,6 +128,8 @@ class AudioRecorderGUI:
         master.title('眼科医師用音声録音・文字起こしアプリ')
 
         self.recorder = AudioRecorder()
+        self.recording_timer = None
+        self.five_second_notification_shown = False
 
         self.record_button = tk.Button(master, text='録音開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
@@ -160,11 +164,31 @@ class AudioRecorderGUI:
             self.record_button.config(text='録音停止')
             self.status_label.config(text=f"録音中... ({TOGGLE_RECORDING_KEY}キーで停止)")
             threading.Thread(target=self.recorder.record, daemon=True).start()
+
+            # 自動停止タイマーを設定
+            self.recording_timer = threading.Timer(AUTO_STOP_TIMER, self.auto_stop_recording)
+            self.recording_timer.start()
+
+            # 5秒前通知のためのタイマーを設定
+            self.five_second_notification_shown = False
+            self.master.after((AUTO_STOP_TIMER - 5) * 1000, self.show_five_second_notification)
         except Exception as e:
             print(f"録音の開始中にエラーが発生しました: {str(e)}")
             self.record_button.config(text='録音開始')
 
     def stop_recording(self):
+        if self.recording_timer and self.recording_timer.is_alive():
+            self.recording_timer.cancel()
+        self._stop_recording_process()
+
+    def auto_stop_recording(self):
+        self.master.after(0, self._auto_stop_recording_ui)
+
+    def _auto_stop_recording_ui(self):
+        messagebox.showinfo("自動停止", f"{AUTO_STOP_TIMER}秒が経過したため、録音を自動停止しました。")
+        self._stop_recording_process()
+
+    def _stop_recording_process(self):
         try:
             frames, sample_rate = self.recorder.stop_recording()
             self.record_button.config(text='録音開始')
@@ -172,6 +196,17 @@ class AudioRecorderGUI:
             threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
         except Exception as e:
             print(f"録音の停止中にエラーが発生しました: {str(e)}")
+
+    def show_five_second_notification(self):
+        if self.recorder.is_recording and not self.five_second_notification_shown:
+            # メインウィンドウを最前面に出す
+            self.master.lift()
+            self.master.attributes('-topmost', True)
+            self.master.attributes('-topmost', False)
+
+            # 通知を表示
+            messagebox.showwarning("残り5秒", "録音終了まであと5秒です！")
+            self.five_second_notification_shown = True
 
     def process_audio(self, frames, sample_rate):
         temp_audio_file = save_audio(frames, sample_rate)
@@ -190,7 +225,7 @@ class AudioRecorderGUI:
     def append_transcription(self, text):
         current_text = self.transcription_text.get('1.0', tk.END).strip()
         if current_text:
-            self.transcription_text.insert(tk.END, "")
+            self.transcription_text.insert(tk.END, "\n")
         self.transcription_text.insert(tk.END, text)
         self.transcription_text.see(tk.END)
 
@@ -212,6 +247,8 @@ class AudioRecorderGUI:
     def close_application(self):
         if self.recorder.is_recording:
             self.stop_recording()
+        if self.recording_timer and self.recording_timer.is_alive():
+            self.recording_timer.cancel()
         self.master.quit()
 
 
