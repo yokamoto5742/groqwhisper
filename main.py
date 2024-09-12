@@ -10,8 +10,8 @@ import pyautogui
 from groq import Groq
 import configparser
 
-VERSION = "0.0.5"
-LAST_UPDATED = "2024/09/11"
+VERSION = "1.0.1"
+LAST_UPDATED = "2024/09/12"
 
 # 設定ファイルの読み込み
 config = configparser.ConfigParser()
@@ -27,9 +27,9 @@ AUTO_STOP_TIMER = int(config['RECORDING']['AUTO_STOP_TIMER'])
 USE_PUNCTUATION = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
 USE_COMMA = config['WHISPER'].getboolean('USE_COMMA', True)
 
-TEXT_AREA_HEIGHT = int(config['UI'].get('TEXT_AREA_HEIGHT', 10))
+TEXT_AREA_HEIGHT = int(config['UI'].get('TEXT_AREA_HEIGHT', 20))
 TEXT_AREA_WIDTH = int(config['UI'].get('TEXT_AREA_WIDTH', 50))
-TEXT_AREA_PADY = int(config['UI'].get('TEXT_AREA_PADY', 10))
+TEXT_AREA_PADY = int(config['UI'].get('TEXT_AREA_PADY', 5))
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
