@@ -4,7 +4,6 @@ import wave
 import pyaudio
 import pyperclip
 import tkinter as tk
-from tkinter import messagebox
 import threading
 import keyboard
 import pyautogui
@@ -23,7 +22,9 @@ replacements = dict(config['REPLACEMENTS'])
 start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
 TOGGLE_RECORDING_KEY = config['KEYS']['TOGGLE_RECORDING']
 EXIT_APP_KEY = config['KEYS']['EXIT_APP']
+TOGGLE_PUNCTUATION_KEY = config['KEYS']['TOGGLE_PUNCTUATION']
 AUTO_STOP_TIMER = int(config['RECORDING']['AUTO_STOP_TIMER'])
+USE_PUNCTUATION = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -94,7 +95,7 @@ def save_audio(frames, sample_rate):
         return None
 
 
-def transcribe_audio(audio_file_path):
+def transcribe_audio(audio_file_path, use_punctuation):
     if not audio_file_path:
         return None
     try:
@@ -104,9 +105,14 @@ def transcribe_audio(audio_file_path):
                 model=config['WHISPER']['MODEL'],
                 prompt=config['WHISPER']['PROMPT'],
                 response_format="text",
-                language=config['WHISPER']['LANGUAGE'],
+                language=config['WHISPER']['LANGUAGE']
             )
+
+        if not use_punctuation:
+            transcription = transcription.replace('。', '').replace('、', '')
+
         return transcription
+
     except Exception as e:
         print(f"文字起こし中にエラーが発生しました: {str(e)}")
         return None
@@ -130,9 +136,13 @@ class AudioRecorderGUI:
         self.recorder = AudioRecorder()
         self.recording_timer = None
         self.five_second_notification_shown = False
+        self.use_punctuation = USE_PUNCTUATION
 
         self.record_button = tk.Button(master, text='録音開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
+
+        self.punctuation_button = tk.Button(master, text='句読点: オン' if self.use_punctuation else '句読点: オフ', command=self.toggle_punctuation)
+        self.punctuation_button.pack(pady=5)
 
         self.transcription_text = tk.Text(master, height=10, width=50)
         self.transcription_text.pack(pady=10)
@@ -143,14 +153,37 @@ class AudioRecorderGUI:
         self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
         self.clear_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{EXIT_APP_KEY}キーで終了")
+        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句読点切替、{EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
         keyboard.on_press_key(TOGGLE_RECORDING_KEY, self.on_toggle_key)
         keyboard.on_press_key(EXIT_APP_KEY, self.on_exit_key)
+        keyboard.on_press_key(TOGGLE_PUNCTUATION_KEY, self.on_toggle_punctuation_key)
 
         if start_minimized:
             self.master.iconify()
+
+    def toggle_punctuation(self):
+        self.use_punctuation = not self.use_punctuation
+        self.punctuation_button.config(text='句読点: オン' if self.use_punctuation else '句読点: オフ')
+        print(f"句読点モード: {'オン' if self.use_punctuation else 'オフ'}")
+
+    def on_toggle_punctuation_key(self, e):
+        self.master.after(0, self.toggle_punctuation)
+
+    def process_audio(self, frames, sample_rate):
+        temp_audio_file = save_audio(frames, sample_rate)
+        if temp_audio_file:
+            transcription = transcribe_audio(temp_audio_file, self.use_punctuation)
+            if transcription:
+                replaced_transcription = replace_text(transcription, replacements)
+                self.master.after(0, self.append_transcription, replaced_transcription)
+                copy_and_paste_transcription(replaced_transcription)
+            try:
+                os.unlink(temp_audio_file)
+            except Exception as e:
+                print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
+        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句読点切替")
 
     def toggle_recording(self):
         if not self.recorder.is_recording:
@@ -214,20 +247,6 @@ class AudioRecorderGUI:
         label = tk.Label(popup, text=message)
         label.pack(padx=20, pady=20)
         popup.after(duration, popup.destroy)
-
-    def process_audio(self, frames, sample_rate):
-        temp_audio_file = save_audio(frames, sample_rate)
-        if temp_audio_file:
-            transcription = transcribe_audio(temp_audio_file)
-            if transcription:
-                replaced_transcription = replace_text(transcription, replacements)
-                self.master.after(0, self.append_transcription, replaced_transcription)
-                copy_and_paste_transcription(replaced_transcription)
-            try:
-                os.unlink(temp_audio_file)
-            except Exception as e:
-                print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
-        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止")
 
     def append_transcription(self, text):
         current_text = self.transcription_text.get('1.0', tk.END).strip()
