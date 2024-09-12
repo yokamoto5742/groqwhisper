@@ -76,7 +76,7 @@ class AudioRecorder:
         )
         self.is_recording = True
         self.frames = []
-        print("録音開始...")
+        print("音声入力開始...")
 
     def stop_recording(self):
         self.is_recording = False
@@ -85,7 +85,7 @@ class AudioRecorder:
             self.stream.close()
         if self.p:
             self.p.terminate()
-        print("録音終了.")
+        print("音声入力終了.")
         return self.frames, self.sample_rate
 
     def record(self):
@@ -94,7 +94,7 @@ class AudioRecorder:
                 data = self.stream.read(self.chunk)
                 self.frames.append(data)
             except Exception as e:
-                print(f"録音中にエラーが発生しました: {str(e)}")
+                print(f"音声入力中にエラーが発生しました: {str(e)}")
                 self.is_recording = False
                 break
 
@@ -128,14 +128,14 @@ def transcribe_audio(audio_file_path, use_punctuation, use_comma):
             )
 
         if not use_punctuation:
-            transcription = transcription.replace('。', '').replace('、', '')
+            transcription = transcription.replace('。', '')
         if not use_comma:
             transcription = transcription.replace('、', '')
 
         return transcription
 
     except Exception as e:
-        print(f"文字起こし中にエラーが発生しました: {str(e)}")
+        print(f"テキスト出力中にエラーが発生しました: {str(e)}")
         return None
 
 
@@ -150,7 +150,7 @@ def copy_and_paste_transcription(text):
 class AudioRecorderGUI:
     def __init__(self, master):
         self.master = master
-        master.title('眼科医師用音声録音・文字起こしアプリ')
+        master.title('音声入力メモアプリ v' + VERSION)
 
         self.recorder = AudioRecorder()
         self.recording_timer = None
@@ -158,13 +158,13 @@ class AudioRecorderGUI:
         self.use_punctuation = USE_PUNCTUATION
         self.use_comma = USE_COMMA
 
-        self.record_button = tk.Button(master, text='録音開始', command=self.toggle_recording)
+        self.record_button = tk.Button(master, text='音声入力開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
 
-        self.punctuation_button = tk.Button(master, text='句点: オン' if self.use_punctuation else '句点: オフ', command=self.toggle_punctuation)
+        self.punctuation_button = tk.Button(master, text=f'句点(。)オン:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)オフ:{TOGGLE_PUNCTUATION_KEY}', command=self.toggle_punctuation)
         self.punctuation_button.pack(pady=5)
 
-        self.comma_button = tk.Button(master, text='読点: オン' if self.use_comma else '読点: オフ', command=self.toggle_comma)
+        self.comma_button = tk.Button(master, text=f'読点(、)オン:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)オフ:{TOGGLE_COMMA_KEY}', command=self.toggle_comma)
         self.comma_button.pack(pady=5)
 
         self.transcription_text = tk.Text(master, height=10, width=50)
@@ -176,7 +176,7 @@ class AudioRecorderGUI:
         self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
         self.clear_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句点切替、{TOGGLE_COMMA_KEY}キーで読点切替、{EXIT_APP_KEY}キーで終了")
+        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで音声入力開始/停止 {EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
         keyboard.on_press_key(TOGGLE_RECORDING_KEY, self.on_toggle_key)
@@ -189,15 +189,15 @@ class AudioRecorderGUI:
 
     def toggle_punctuation(self):
         self.use_punctuation = not self.use_punctuation
-        self.punctuation_button.config(text='句点: オン' if self.use_punctuation else '句点: オフ')
-        print(f"句点モード: {'オン' if self.use_punctuation else 'オフ'}")
+        self.punctuation_button.config(text=f'句点(。)オン:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)オフ:{TOGGLE_PUNCTUATION_KEY}')
+        print(f"句点(。)モード: {'オン' if self.use_punctuation else 'オフ'}")
         config['WHISPER']['USE_PUNCTUATION'] = str(self.use_punctuation)
         save_config()
 
     def toggle_comma(self):
         self.use_comma = not self.use_comma
-        self.comma_button.config(text='読点: オン' if self.use_comma else '読点: オフ')
-        print(f"読点モード: {'オン' if self.use_comma else 'オフ'}")
+        self.comma_button.config(text=f'読点(、)オン:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)オフ:{TOGGLE_COMMA_KEY}')
+        print(f"読点(、)モード: {'オン' if self.use_comma else 'オフ'}")
         config['WHISPER']['USE_COMMA'] = str(self.use_comma)
         save_config()
 
@@ -219,7 +219,7 @@ class AudioRecorderGUI:
                 os.unlink(temp_audio_file)
             except Exception as e:
                 print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
-        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句点切替、{TOGGLE_COMMA_KEY}キーで読点切替")
+        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで音声入力開始/停止 {EXIT_APP_KEY}キーで終了")
 
     def toggle_recording(self):
         if not self.recorder.is_recording:
@@ -230,8 +230,8 @@ class AudioRecorderGUI:
     def start_recording(self):
         try:
             self.recorder.start_recording()
-            self.record_button.config(text='録音停止')
-            self.status_label.config(text=f"録音中... ({TOGGLE_RECORDING_KEY}キーで停止)")
+            self.record_button.config(text='音声入力停止')
+            self.status_label.config(text=f"音声入力中... ({TOGGLE_RECORDING_KEY}キーで停止)")
             threading.Thread(target=self.recorder.record, daemon=True).start()
 
             # 自動停止タイマーを設定
@@ -242,8 +242,8 @@ class AudioRecorderGUI:
             self.five_second_notification_shown = False
             self.master.after((AUTO_STOP_TIMER - 5) * 1000, self.show_five_second_notification)
         except Exception as e:
-            print(f"録音の開始中にエラーが発生しました: {str(e)}")
-            self.record_button.config(text='録音開始')
+            print(f"音声入力の開始中にエラーが発生しました: {str(e)}")
+            self.record_button.config(text='音声入力開始')
 
     def stop_recording(self):
         if self.recording_timer and self.recording_timer.is_alive():
@@ -260,11 +260,11 @@ class AudioRecorderGUI:
     def _stop_recording_process(self):
         try:
             frames, sample_rate = self.recorder.stop_recording()
-            self.record_button.config(text='録音開始')
-            self.status_label.config(text="文字起こし中...")
+            self.record_button.config(text='音声入力開始')
+            self.status_label.config(text="テキスト出力中...")
             threading.Thread(target=self.process_audio, args=(frames, sample_rate), daemon=True).start()
         except Exception as e:
-            print(f"録音の停止中にエラーが発生しました: {str(e)}")
+            print(f"音声入力の停止中にエラーが発生しました: {str(e)}")
 
     def show_five_second_notification(self):
         if self.recorder.is_recording and not self.five_second_notification_shown:
