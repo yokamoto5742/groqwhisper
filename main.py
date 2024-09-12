@@ -22,14 +22,20 @@ start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
 TOGGLE_RECORDING_KEY = config['KEYS']['TOGGLE_RECORDING']
 EXIT_APP_KEY = config['KEYS']['EXIT_APP']
 TOGGLE_PUNCTUATION_KEY = config['KEYS']['TOGGLE_PUNCTUATION']
+TOGGLE_COMMA_KEY = config['KEYS']['TOGGLE_COMMA']
 AUTO_STOP_TIMER = int(config['RECORDING']['AUTO_STOP_TIMER'])
 USE_PUNCTUATION = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
+USE_COMMA = config['WHISPER'].getboolean('USE_COMMA', True)
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 
-# replacements.txtからデータを読み込む関数
+def save_config():
+    with open('config.ini', 'w', encoding='utf-8') as configfile:
+        config.write(configfile)
+
+
 def load_replacements(file_path='replacements.txt'):
     replacements = {}
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -108,7 +114,7 @@ def save_audio(frames, sample_rate):
         return None
 
 
-def transcribe_audio(audio_file_path, use_punctuation):
+def transcribe_audio(audio_file_path, use_punctuation, use_comma):
     if not audio_file_path:
         return None
     try:
@@ -123,6 +129,8 @@ def transcribe_audio(audio_file_path, use_punctuation):
 
         if not use_punctuation:
             transcription = transcription.replace('。', '').replace('、', '')
+        if not use_comma:
+            transcription = transcription.replace('、', '')
 
         return transcription
 
@@ -148,12 +156,16 @@ class AudioRecorderGUI:
         self.recording_timer = None
         self.five_second_notification_shown = False
         self.use_punctuation = USE_PUNCTUATION
+        self.use_comma = USE_COMMA
 
         self.record_button = tk.Button(master, text='録音開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
 
-        self.punctuation_button = tk.Button(master, text='句読点: オン' if self.use_punctuation else '句読点: オフ', command=self.toggle_punctuation)
+        self.punctuation_button = tk.Button(master, text='句点: オン' if self.use_punctuation else '句点: オフ', command=self.toggle_punctuation)
         self.punctuation_button.pack(pady=5)
+
+        self.comma_button = tk.Button(master, text='読点: オン' if self.use_comma else '読点: オフ', command=self.toggle_comma)
+        self.comma_button.pack(pady=5)
 
         self.transcription_text = tk.Text(master, height=10, width=50)
         self.transcription_text.pack(pady=10)
@@ -164,28 +176,41 @@ class AudioRecorderGUI:
         self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
         self.clear_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句読点切替、{EXIT_APP_KEY}キーで終了")
+        self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句点切替、{TOGGLE_COMMA_KEY}キーで読点切替、{EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
         keyboard.on_press_key(TOGGLE_RECORDING_KEY, self.on_toggle_key)
         keyboard.on_press_key(EXIT_APP_KEY, self.on_exit_key)
         keyboard.on_press_key(TOGGLE_PUNCTUATION_KEY, self.on_toggle_punctuation_key)
+        keyboard.on_press_key(TOGGLE_COMMA_KEY, self.on_toggle_comma_key)
 
         if start_minimized:
             self.master.iconify()
 
     def toggle_punctuation(self):
         self.use_punctuation = not self.use_punctuation
-        self.punctuation_button.config(text='句読点: オン' if self.use_punctuation else '句読点: オフ')
-        print(f"句読点モード: {'オン' if self.use_punctuation else 'オフ'}")
+        self.punctuation_button.config(text='句点: オン' if self.use_punctuation else '句点: オフ')
+        print(f"句点モード: {'オン' if self.use_punctuation else 'オフ'}")
+        config['WHISPER']['USE_PUNCTUATION'] = str(self.use_punctuation)
+        save_config()
+
+    def toggle_comma(self):
+        self.use_comma = not self.use_comma
+        self.comma_button.config(text='読点: オン' if self.use_comma else '読点: オフ')
+        print(f"読点モード: {'オン' if self.use_comma else 'オフ'}")
+        config['WHISPER']['USE_COMMA'] = str(self.use_comma)
+        save_config()
 
     def on_toggle_punctuation_key(self, e):
         self.master.after(0, self.toggle_punctuation)
 
+    def on_toggle_comma_key(self, e):
+        self.master.after(0, self.toggle_comma)
+
     def process_audio(self, frames, sample_rate):
         temp_audio_file = save_audio(frames, sample_rate)
         if temp_audio_file:
-            transcription = transcribe_audio(temp_audio_file, self.use_punctuation)
+            transcription = transcribe_audio(temp_audio_file, self.use_punctuation, self.use_comma)
             if transcription:
                 replaced_transcription = replace_text(transcription, replacements)
                 self.master.after(0, self.append_transcription, replaced_transcription)
@@ -194,7 +219,7 @@ class AudioRecorderGUI:
                 os.unlink(temp_audio_file)
             except Exception as e:
                 print(f"一時ファイルの削除中にエラーが発生しました: {str(e)}")
-        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句読点切替")
+        self.status_label.config(text=f"{TOGGLE_RECORDING_KEY}キーで録音開始/停止、{TOGGLE_PUNCTUATION_KEY}キーで句点切替、{TOGGLE_COMMA_KEY}キーで読点切替")
 
     def toggle_recording(self):
         if not self.recorder.is_recording:
