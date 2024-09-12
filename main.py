@@ -27,6 +27,10 @@ AUTO_STOP_TIMER = int(config['RECORDING']['AUTO_STOP_TIMER'])
 USE_PUNCTUATION = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
 USE_COMMA = config['WHISPER'].getboolean('USE_COMMA', True)
 
+TEXT_AREA_HEIGHT = int(config['UI'].get('TEXT_AREA_HEIGHT', 10))
+TEXT_AREA_WIDTH = int(config['UI'].get('TEXT_AREA_WIDTH', 50))
+TEXT_AREA_PADY = int(config['UI'].get('TEXT_AREA_PADY', 10))
+
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
@@ -161,8 +165,8 @@ class AudioRecorderGUI:
         self.record_button = tk.Button(master, text='音声入力開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
 
-        self.transcription_text = tk.Text(master, height=10, width=50)
-        self.transcription_text.pack(pady=10)
+        self.transcription_text = tk.Text(master, height=TEXT_AREA_HEIGHT, width=TEXT_AREA_WIDTH)
+        self.transcription_text.pack(pady=TEXT_AREA_PADY)
 
         self.copy_button = tk.Button(master, text='クリップボードにコピー', command=self.copy_to_clipboard)
         self.copy_button.pack(pady=5)
@@ -170,15 +174,16 @@ class AudioRecorderGUI:
         self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
         self.clear_button.pack(pady=5)
 
+        self.comma_button = tk.Button(master,
+                                      text=f'読点(、)あり:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)なし:{TOGGLE_COMMA_KEY}',
+                                      command=self.toggle_comma)
+        self.comma_button.pack(pady=5)
+
         self.punctuation_button = tk.Button(master,
                                             text=f'句点(。)あり:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)なし:{TOGGLE_PUNCTUATION_KEY}',
                                             command=self.toggle_punctuation)
         self.punctuation_button.pack(pady=5)
 
-        self.comma_button = tk.Button(master,
-                                      text=f'読点(、)あり:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)なし:{TOGGLE_COMMA_KEY}',
-                                      command=self.toggle_comma)
-        self.comma_button.pack(pady=5)
         self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで音声入力開始/停止 {EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
