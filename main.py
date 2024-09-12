@@ -18,7 +18,6 @@ config = configparser.ConfigParser()
 with open('config.ini', 'r', encoding='utf-8') as f:
     config.read_file(f)
 
-replacements = dict(config['REPLACEMENTS'])
 start_minimized = config['OPTIONS'].getboolean('start_minimized', True)
 TOGGLE_RECORDING_KEY = config['KEYS']['TOGGLE_RECORDING']
 EXIT_APP_KEY = config['KEYS']['EXIT_APP']
@@ -28,6 +27,20 @@ USE_PUNCTUATION = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
 
 # Groqクライアントのセットアップ
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+
+# replacements.txtからデータを読み込む関数
+def load_replacements(file_path='replacements.txt'):
+    replacements = {}
+    with open(file_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            old, new = line.strip().split(',')
+            replacements[old] = new
+    return replacements
+
+
+# replacementsを読み込む
+replacements = load_replacements()
 
 
 def replace_text(text, replacements):
@@ -122,9 +135,7 @@ def copy_and_paste_transcription(text):
     if text:
         replaced_text = replace_text(text, replacements)
         pyperclip.copy(replaced_text)
-        # config.iniから待機時間を読み込む
         paste_delay = float(config['CLIPBOARD']['PASTE_DELAY'])
-        # 設定された待機時間後にCtrl+Vを実行
         threading.Timer(paste_delay, lambda: pyautogui.hotkey('ctrl', 'v')).start()
 
 
