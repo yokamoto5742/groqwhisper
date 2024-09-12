@@ -185,7 +185,7 @@ class AudioRecorderGUI:
         self.master.after(0, self._auto_stop_recording_ui)
 
     def _auto_stop_recording_ui(self):
-        messagebox.showinfo("自動停止", f"{AUTO_STOP_TIMER}秒が経過したため、録音を自動停止しました。")
+        self.show_timed_message("自動停止", "音声入力を自動停止しました")
         self._stop_recording_process()
 
     def _stop_recording_process(self):
@@ -205,8 +205,15 @@ class AudioRecorderGUI:
             self.master.attributes('-topmost', False)
 
             # 通知を表示
-            messagebox.showwarning("残り5秒", "録音終了まであと5秒です！")
+            self.show_timed_message("自動停止", "あと5秒で音声入力を停止します")
             self.five_second_notification_shown = True
+
+    def show_timed_message(self, title, message, duration=2000):
+        popup = tk.Toplevel(self.master)
+        popup.title(title)
+        label = tk.Label(popup, text=message)
+        label.pack(padx=20, pady=20)
+        popup.after(duration, popup.destroy)
 
     def process_audio(self, frames, sample_rate):
         temp_audio_file = save_audio(frames, sample_rate)
