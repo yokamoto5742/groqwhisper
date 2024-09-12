@@ -161,12 +161,6 @@ class AudioRecorderGUI:
         self.record_button = tk.Button(master, text='音声入力開始', command=self.toggle_recording)
         self.record_button.pack(pady=10)
 
-        self.punctuation_button = tk.Button(master, text=f'句点(。)オン:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)オフ:{TOGGLE_PUNCTUATION_KEY}', command=self.toggle_punctuation)
-        self.punctuation_button.pack(pady=5)
-
-        self.comma_button = tk.Button(master, text=f'読点(、)オン:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)オフ:{TOGGLE_COMMA_KEY}', command=self.toggle_comma)
-        self.comma_button.pack(pady=5)
-
         self.transcription_text = tk.Text(master, height=10, width=50)
         self.transcription_text.pack(pady=10)
 
@@ -176,6 +170,15 @@ class AudioRecorderGUI:
         self.clear_button = tk.Button(master, text='テキストをクリア', command=self.clear_text)
         self.clear_button.pack(pady=5)
 
+        self.punctuation_button = tk.Button(master,
+                                            text=f'句点(。)あり:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)なし:{TOGGLE_PUNCTUATION_KEY}',
+                                            command=self.toggle_punctuation)
+        self.punctuation_button.pack(pady=5)
+
+        self.comma_button = tk.Button(master,
+                                      text=f'読点(、)あり:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)なし:{TOGGLE_COMMA_KEY}',
+                                      command=self.toggle_comma)
+        self.comma_button.pack(pady=5)
         self.status_label = tk.Label(master, text=f"{TOGGLE_RECORDING_KEY}キーで音声入力開始/停止 {EXIT_APP_KEY}キーで終了")
         self.status_label.pack(pady=5)
 
@@ -189,15 +192,15 @@ class AudioRecorderGUI:
 
     def toggle_punctuation(self):
         self.use_punctuation = not self.use_punctuation
-        self.punctuation_button.config(text=f'句点(。)オン:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)オフ:{TOGGLE_PUNCTUATION_KEY}')
-        print(f"句点(。)モード: {'オン' if self.use_punctuation else 'オフ'}")
+        self.punctuation_button.config(text=f'句点(。)あり:{TOGGLE_PUNCTUATION_KEY}' if self.use_punctuation else f'句点(。)なし:{TOGGLE_PUNCTUATION_KEY}')
+        print(f"句点(。)モード: {'あり' if self.use_punctuation else 'なし'}")
         config['WHISPER']['USE_PUNCTUATION'] = str(self.use_punctuation)
         save_config()
 
     def toggle_comma(self):
         self.use_comma = not self.use_comma
-        self.comma_button.config(text=f'読点(、)オン:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)オフ:{TOGGLE_COMMA_KEY}')
-        print(f"読点(、)モード: {'オン' if self.use_comma else 'オフ'}")
+        self.comma_button.config(text=f'読点(、)あり:{TOGGLE_COMMA_KEY}' if self.use_comma else f'読点(、)なし:{TOGGLE_COMMA_KEY}')
+        print(f"読点(、)モード: {'あり' if self.use_comma else 'なし'}")
         config['WHISPER']['USE_COMMA'] = str(self.use_comma)
         save_config()
 
