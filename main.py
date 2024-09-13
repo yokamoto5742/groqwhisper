@@ -158,6 +158,7 @@ class AudioRecorderGUI:
 
         self.recorder = AudioRecorder()
         self.recording_timer = None
+        self.five_second_timer = None
         self.five_second_notification_shown = False
         self.use_punctuation = USE_PUNCTUATION
         self.use_comma = USE_COMMA
@@ -242,13 +243,11 @@ class AudioRecorderGUI:
             self.status_label.config(text=f"音声入力中... ({TOGGLE_RECORDING_KEY}キーで停止)")
             threading.Thread(target=self.recorder.record, daemon=True).start()
 
-            # 自動停止タイマーを設定
             self.recording_timer = threading.Timer(AUTO_STOP_TIMER, self.auto_stop_recording)
             self.recording_timer.start()
 
-            # 5秒前通知のためのタイマーを設定
             self.five_second_notification_shown = False
-            self.master.after((AUTO_STOP_TIMER - 5) * 1000, self.show_five_second_notification)
+            self.five_second_timer = self.master.after((AUTO_STOP_TIMER - 5) * 1000, self.show_five_second_notification)
         except Exception as e:
             print(f"音声入力の開始中にエラーが発生しました: {str(e)}")
             self.record_button.config(text='音声入力開始')
@@ -256,6 +255,9 @@ class AudioRecorderGUI:
     def stop_recording(self):
         if self.recording_timer and self.recording_timer.is_alive():
             self.recording_timer.cancel()
+        if self.five_second_timer:
+            self.master.after_cancel(self.five_second_timer)
+            self.five_second_timer = None
         self._stop_recording_process()
 
     def auto_stop_recording(self):
