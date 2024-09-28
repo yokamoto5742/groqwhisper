@@ -7,7 +7,7 @@ from text_processing import load_replacements
 from transcription import setup_groq_client
 
 VERSION = "1.0.1"
-LAST_UPDATED = "2024/09/12"
+LAST_UPDATED = "2024/09/28"
 
 
 def main():
