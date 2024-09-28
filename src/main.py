@@ -1,7 +1,7 @@
 import tkinter as tk
 
 from audio_recorder import AudioRecorder
-from config import load_config
+from config.config import load_config
 from gui import AudioRecorderGUI
 from text_processing import load_replacements
 from transcription import setup_groq_client
