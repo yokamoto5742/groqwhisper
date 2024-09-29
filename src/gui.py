@@ -192,5 +192,5 @@ class AudioRecorderGUI:
         self.master.quit()
 
     def save_config(self):
-        from config import save_config  # Avoid circular import
+        from config.config import save_config  # Avoid circular import
         save_config(self.config)
