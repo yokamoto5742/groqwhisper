@@ -24,6 +24,10 @@ class AudioRecorderGUI:
         self.setup_ui()
         self.setup_keyboard_listeners()
 
+        start_minimized = self.config['OPTIONS'].getboolean('START_MINIMIZED', False)
+        if start_minimized:
+            self.master.iconify()
+
     def setup_ui(self):
         self.master.title(f'音声入力メモアプリ v{self.version}')
 
