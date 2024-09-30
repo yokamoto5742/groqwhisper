@@ -24,7 +24,6 @@ class AudioRecorder:
         )
         self.is_recording = True
         self.frames = []
-        print("音声入力開始...")
 
     def stop_recording(self):
         self.is_recording = False
@@ -33,7 +32,6 @@ class AudioRecorder:
             self.stream.close()
         if self.p:
             self.p.terminate()
-        print("音声入力終了.")
         return self.frames, self.sample_rate
 
     def record(self):

@@ -6,14 +6,13 @@ from transcription import transcribe_audio
 
 
 class AudioRecorderGUI:
-    def __init__(self, master, config, recorder, client, replacements, version, last_updated):
+    def __init__(self, master, config, recorder, client, replacements, version):
         self.master = master
         self.config = config
         self.recorder = recorder
         self.client = client
         self.replacements = replacements
         self.version = version
-        self.last_updated = last_updated
 
         self.recording_timer = None
         self.five_second_timer = None
@@ -176,11 +175,9 @@ class AudioRecorderGUI:
     def copy_to_clipboard(self):
         text = self.transcription_text.get('1.0', tk.END).strip()
         copy_and_paste_transcription(text, self.replacements, self.config)
-        print("テキストをクリップボードにコピーし、貼り付けました。")
 
     def clear_text(self):
         self.transcription_text.delete('1.0', tk.END)
-        print("テキストをクリアしました。")
 
     def on_toggle_key(self, e):
         self.master.after(0, self.toggle_recording)

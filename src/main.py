@@ -17,7 +17,7 @@ def main():
     replacements = load_replacements()
 
     root = tk.Tk()
-    app = AudioRecorderGUI(root, config, recorder, client, replacements, VERSION, LAST_UPDATED)
+    app = AudioRecorderGUI(root, config, recorder, client, replacements, VERSION)
     root.protocol("WM_DELETE_WINDOW", app.close_application)
     root.mainloop()
 
