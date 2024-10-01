@@ -1,10 +1,7 @@
 import pytest
 from unittest.mock import patch
-import tempfile
-import os
-import wave
-import pyaudio
 from src.audio_recorder import AudioRecorder, save_audio
+
 
 def test_audio_recorder_init():
     config = {'AUDIO': {'SAMPLE_RATE': '44100', 'CHANNELS': '1', 'CHUNK': '1024'}}
@@ -12,6 +9,7 @@ def test_audio_recorder_init():
     assert recorder.sample_rate == 44100
     assert recorder.channels == 1
     assert recorder.chunk == 1024
+
 
 @pytest.mark.skip(reason="PyAudioの初期化が必要なため、CIでは実行できない")
 def test_audio_recorder_start_stop():
@@ -23,6 +21,7 @@ def test_audio_recorder_start_stop():
     assert recorder.is_recording == False
     assert len(frames) > 0
     assert sample_rate == 44100
+
 
 def test_save_audio():
     frames = [b'\x00' * 1024] * 10  # ダミーのオーディオフレーム
