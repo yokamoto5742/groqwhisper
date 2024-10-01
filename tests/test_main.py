@@ -1,8 +1,7 @@
 import sys
-from unittest.mock import patch, ANY, MagicMock
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-# srcディレクトリとプロジェクトルートディレクトリをPYTHONPATHに追加
 project_root = Path(__file__).parent.parent
 src_path = project_root / 'src'
 sys.path.insert(0, str(project_root))
@@ -19,7 +18,7 @@ def create_mock_config():
         'WHISPER': {
             'MODEL': 'whisper-large-v3',
             'LANGUAGE': 'ja',
-            'PROMPT': '眼科医師の会話です。専門的な眼科用語と医学用語が使用されます。主な用語：眼圧, 網膜, 緑内障, 白内障, 黄斑変性, 視神経, 角膜, 虹彩, 水晶体, 結膜, 視力, 屈折, 眼底, 瞳孔, 硝子体, 視野, 眼筋, 涙腺, 眼窩, 斜視 これらの用語と数値・測定値の正確な認識に注意してください。',
+            'PROMPT': '眼科医師の会話です',
             'USE_PUNCTUATION': True,
             'USE_COMMA': True
         },
@@ -52,6 +51,13 @@ def create_mock_config():
         def __contains__(self, key):
             return super().__contains__(key.upper())
 
+        # getbooleanメソッドを追加
+        def getboolean(self, key, fallback=None):
+            value = self.get(key.upper(), fallback)
+            if isinstance(value, str):
+                return value.lower() in ['true', '1', 'yes', 'on']
+            return bool(value)
+
     mock_config = MagicMock()
     mock_config.__getitem__.side_effect = lambda key: CaseInsensitiveDict(
         {k.upper(): v if not isinstance(v, dict) else CaseInsensitiveDict(v) for k, v in
@@ -81,6 +87,9 @@ def test_main(mock_load_config, mock_load_replacements, mock_setup_groq_client, 
     mock_load_replacements.assert_called_once()
     mock_gui.assert_called_once()
 
+    # デバッグ用: AudioRecorderの引数を出力
+    print(f"デバック用AudioRecorder was called with: {mock_audio_recorder.call_args_list}")
+
     # GUIの初期化パラメータを確認
     mock_gui.assert_called_once_with(
         mock_tk.return_value,
@@ -88,5 +97,4 @@ def test_main(mock_load_config, mock_load_replacements, mock_setup_groq_client, 
         mock_audio_recorder.return_value,
         mock_setup_groq_client.return_value,
         mock_load_replacements.return_value,
-        ANY  # VERSION
     )
