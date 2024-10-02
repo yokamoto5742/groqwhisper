@@ -30,11 +30,11 @@ class AudioRecorder:
             )
             self.is_recording = True
             self.frames = []
-            self.logger.info("録音を開始しました。")
+            self.logger.info("音声入力を開始しました。")
         except OSError as e:
-            self.logger.error(f"録音の開始中にOSエラーが発生しました: {e}")
+            self.logger.error(f"音声入力の開始中にOSエラーが発生しました: {e}")
         except Exception as e:
-            self.logger.error(f"録音の開始中に予期せぬエラーが発生しました: {e}")
+            self.logger.error(f"音声入力の開始中に予期せぬエラーが発生しました: {e}")
 
     def stop_recording(self) -> Tuple[List[bytes], int]:
         self.is_recording = False
@@ -44,11 +44,11 @@ class AudioRecorder:
                 self.stream.close()
             if self.p:
                 self.p.terminate()
-            self.logger.info("録音を停止しました。")
+            self.logger.info("音声入力を停止しました。")
         except OSError as e:
-            self.logger.error(f"録音の停止中にOSエラーが発生しました: {e}")
+            self.logger.error(f"音声入力の停止中にOSエラーが発生しました: {e}")
         except Exception as e:
-            self.logger.error(f"録音の停止中に予期せぬエラーが発生しました: {e}")
+            self.logger.error(f"音声入力の停止中に予期せぬエラーが発生しました: {e}")
         return self.frames, self.sample_rate
 
     def record(self) -> None:
