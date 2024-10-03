@@ -3,6 +3,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timedelta
 
+
 def setup_logging(config):
     log_directory = config.get('Logging', 'log_directory', fallback='logs')
     log_retention_days = config.getint('Logging', 'log_retention_days', fallback=7)

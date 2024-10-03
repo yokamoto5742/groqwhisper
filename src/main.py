@@ -2,14 +2,14 @@ import tkinter as tk
 import logging
 from typing import Dict, Any
 
-from audio_recorder import AudioRecorder
+from src.audio_recorder import AudioRecorder
 from config.config import load_config
-from gui import AudioRecorderGUI
-from text_processing import load_replacements
-from transcription import setup_groq_client
-from log_rotation import setup_logging
+from src.gui import AudioRecorderGUI
+from src.text_processing import load_replacements
+from src.transcription import setup_groq_client
+from src.log_rotation import setup_logging
 
-VERSION = "1.0.2"
+VERSION = "1.0.1"
 LAST_UPDATED = "2024/10/03"
 
 logger = logging.getLogger(__name__)

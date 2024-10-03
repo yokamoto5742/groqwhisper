@@ -19,6 +19,18 @@ def build_executable():
         "--name=GroqWhisper",
         "--windowed",
         "--icon=assets/GroqWhisper.ico",
+        "--add-data=src/audio_recorder.py:.",
+        "--add-data=src/gui.py:.",
+        "--add-data=src/text_processing.py:.",
+        "--add-data=src/transcription.py:.",
+        "--add-data=src/log_rotation.py:.",
+        "--hidden-import=audio_recorder",
+        "--hidden-import=gui",
+        "--hidden-import=text_processing",
+        "--hidden-import=transcription",
+        "--hidden-import=log_rotation",
+        "--hidden-import=pyaudio",
+        "--hidden-import=wave",
         os.path.join(PROJECT_ROOT, "src", "main.py")
     ])
 

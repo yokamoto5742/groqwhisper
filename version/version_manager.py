@@ -2,7 +2,10 @@ import os
 import re
 from datetime import datetime
 
-VERSION_FILE = "version.txt"
+# プロジェクトルートディレクトリを正しく設定
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VERSION_FILE = os.path.join(PROJECT_ROOT, "version", "version.txt")
+MAIN_PY_PATH = os.path.join(PROJECT_ROOT, "src", "main.py")
 
 
 def get_current_version():
@@ -28,7 +31,10 @@ def update_version():
 
 
 def update_main_py(new_version):
-    with open('main.py', 'r', encoding='utf-8') as f:
+    if not os.path.exists(MAIN_PY_PATH):
+        raise FileNotFoundError(f"main.py not found at {MAIN_PY_PATH}")
+
+    with open(MAIN_PY_PATH, 'r', encoding='utf-8') as f:
         content = f.read()
 
     # バージョン情報を更新
@@ -38,5 +44,5 @@ def update_main_py(new_version):
     today = datetime.now().strftime("%Y/%m/%d")
     content = re.sub(r'LAST_UPDATED = "[0-9/]+"', f'LAST_UPDATED = "{today}"', content)
 
-    with open('main.py', 'w', encoding='utf-8') as f:
+    with open(MAIN_PY_PATH, 'w', encoding='utf-8') as f:
         f.write(content)
