@@ -1,15 +1,20 @@
 import tkinter as tk
 import logging
 from typing import Dict, Any
+import sys
+import os
 
-from audio_recorder import AudioRecorder
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
+from src.audio_recorder import AudioRecorder
 from config.config import load_config
-from gui import AudioRecorderGUI
-from text_processing import load_replacements
-from transcription import setup_groq_client
-from log_rotation import setup_logging
+from src.gui import AudioRecorderGUI
+from src.text_processing import load_replacements
+from src.transcription import setup_groq_client
+from src.log_rotation import setup_logging
 
-VERSION = "1.0.1"
+VERSION = "1.0.13"
 LAST_UPDATED = "2024/10/03"
 
 logger = logging.getLogger(__name__)
