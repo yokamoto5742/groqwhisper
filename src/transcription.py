@@ -1,12 +1,11 @@
 import os
 import logging
 from typing import Optional
-
 from groq import Groq
 
 
 def setup_groq_client() -> Groq:
-    """Groqクライアントをセットアップし、返します。"""
+    """Groqクライアントをセットアップし返します。"""
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set")
@@ -50,14 +49,3 @@ def transcribe_audio(
         transcription = transcription.replace('、', '')
 
     return transcription
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.info("Transcription script started")
-
-    try:
-        client = setup_groq_client()
-        # ここで必要な設定と音声ファイルのパスを指定してtranscribe_audio関数を呼び出します
-    except Exception as e:
-        logging.error(f"Failed to setup Groq client: {e}")

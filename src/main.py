@@ -11,7 +11,6 @@ from transcription import setup_groq_client
 VERSION = "1.0.1"
 LAST_UPDATED = "2024/09/28"
 
-# ログの設定
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

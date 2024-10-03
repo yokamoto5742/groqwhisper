@@ -2,14 +2,10 @@ import os
 import threading
 from typing import Dict
 import logging
-
 import pyautogui
 import pyperclip
 
-# プロジェクトのルートディレクトリへの相対パスを取得
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-# ロガーの設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
