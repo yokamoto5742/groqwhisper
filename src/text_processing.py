@@ -6,7 +6,6 @@ import pyautogui
 import pyperclip
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -21,11 +20,13 @@ def load_replacements(file_path: str = 'replacements.txt') -> Dict[str, str]:
                     old, new = line.strip().split(',')
                     replacements[old] = new
                 except ValueError:
-                    logger.warning(f"Invalid line in replacements file: {line.strip()}")
+                    logger.warning(f"置換ファイルに無効な行があります: {line.strip()}")
     except FileNotFoundError:
-        logger.error(f"Replacements file not found: {full_path}")
+        logger.error(f"置換ファイルが見つかりません: {full_path}")
+        raise
     except IOError as e:
-        logger.error(f"Error reading replacements file: {e}")
+        logger.error(f"置換ファイルの読み込み中にエラーが発生しました: {e}")
+        raise
     return replacements
 
 
@@ -43,30 +44,30 @@ def copy_and_paste_transcription(
 ) -> None:
     """テキストを置換してクリップボードにコピーし、貼り付ける。"""
     if not text:
-        logger.warning("Empty text provided, skipping copy and paste operation.")
+        logger.warning("空のテキストが提供されました。コピー＆ペースト操作をスキップします。")
         return
 
     replaced_text = replace_text(text, replacements)
     pyperclip.copy(replaced_text)
-    logger.info("Text copied to clipboard.")
+    logger.info("テキストをクリップボードにコピーしました。")
 
     try:
         paste_delay = float(config['CLIPBOARD']['PASTE_DELAY'])
     except KeyError:
-        logger.error("PASTE_DELAY not found in config. Using default value of 0.5 seconds.")
+        logger.error("設定にPASTE_DELAYが見つかりません。デフォルト値の0.5秒を使用します。")
         paste_delay = 0.5
     except ValueError:
-        logger.error("Invalid PASTE_DELAY value in config. Using default value of 0.5 seconds.")
+        logger.error("設定のPASTE_DELAY値が無効です。デフォルト値の0.5秒を使用します。")
         paste_delay = 0.5
 
     def paste_text():
         try:
             pyautogui.hotkey('ctrl', 'v')
-            logger.info("Text pasted successfully.")
+            logger.info("テキストを正常に貼り付けました。")
         except pyautogui.FailSafeException:
-            logger.error("PyAutoGUI failsafe triggered. Mouse movement interrupted.")
+            logger.error("PyAutoGUIのフェイルセーフがトリガーされました。マウスの動きが中断されました。")
         except Exception as e:
-            logger.error(f"Error occurred while pasting text: {e}")
+            logger.error(f"テキストの貼り付け中にエラーが発生しました: {e}")
 
     threading.Timer(paste_delay, paste_text).start()
-    logger.info(f"Paste operation scheduled after {paste_delay} seconds.")
+    logger.info(f"{paste_delay}秒後に貼り付け操作をスケジュールしました。")

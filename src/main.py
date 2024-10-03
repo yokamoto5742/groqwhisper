@@ -7,27 +7,26 @@ from config.config import load_config
 from gui import AudioRecorderGUI
 from text_processing import load_replacements
 from transcription import setup_groq_client
+from log_rotation import setup_logging
 
-VERSION = "1.0.1"
-LAST_UPDATED = "2024/09/28"
+VERSION = "1.0.2"
+LAST_UPDATED = "2024/10/03"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename='audio_recorder.log'
-)
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
     try:
         config: Dict[str, Any] = load_config()
+        setup_logging(config)
     except FileNotFoundError:
-        logger.error("設定ファイルが見つかりません。")
+        print("設定ファイルが見つかりません。")
         return
     except ValueError as e:
-        logger.error(f"設定ファイルの読み込み中にエラーが発生しました: {e}")
+        print(f"設定ファイルの読み込み中にエラーが発生しました: {e}")
         return
+
+    logger.info(f"アプリケーションを開始します。バージョン: {VERSION}")
 
     try:
         recorder = AudioRecorder(config)
@@ -60,8 +59,8 @@ def main() -> None:
     finally:
         root.destroy()
 
+    logger.info("アプリケーションを終了します。")
+
 
 if __name__ == "__main__":
-    logger.info(f"アプリケーションを開始します。バージョン: {VERSION}")
     main()
-    logger.info("アプリケーションを終了します。")
