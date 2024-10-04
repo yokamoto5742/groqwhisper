@@ -1,11 +1,6 @@
-import os
-import shutil
 import subprocess
 
-from version.version_manager import update_version, update_main_py
-
-# プロジェクトのルートディレクトリのパスを取得
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+from version_manager import update_version, update_main_py
 
 
 def build_executable():
@@ -19,23 +14,8 @@ def build_executable():
         "--name=GroqWhisper",
         "--windowed",
         "--icon=assets/GroqWhisper.ico",
-        "--add-data=src:src",
-        "--add-data=config:config",
-        "--hidden-import=pyaudio",
-        "--hidden-import=wave",
-        os.path.join(PROJECT_ROOT, "src", "main.py")
+        "main.py"
     ])
-
-    # 必要なファイルをdistフォルダにコピー
-    dist_dir = os.path.join(PROJECT_ROOT, "dist", "GroqWhisper")
-    shutil.copy(
-        os.path.join(PROJECT_ROOT, "config", "config.ini"),
-        dist_dir
-    )
-    shutil.copy(
-        os.path.join(PROJECT_ROOT, "config", "replacements.txt"),
-        dist_dir
-    )
 
     print(f"Executable built successfully. Version: {new_version}")
 

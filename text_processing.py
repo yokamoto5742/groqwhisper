@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def load_replacements(file_path: str = 'replacements.txt') -> Dict[str, str]:
     """置換ルールをファイルから読み込む。"""
     replacements = {}
-    full_path = os.path.join(PROJECT_ROOT, 'config', file_path)
+    full_path = r'C:\Users\yokam\PycharmProjects\groqwhisper\replacements.txt'
     try:
         with open(full_path, 'r', encoding='utf-8') as f:
             for line in f:

@@ -6,7 +6,7 @@ from typing import Optional, List, Any, Dict
 import keyboard
 
 from audio_recorder import save_audio
-from config.config import save_config
+from config import save_config
 from text_processing import copy_and_paste_transcription, replace_text
 from transcription import transcribe_audio
 
