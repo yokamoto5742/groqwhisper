@@ -16,7 +16,7 @@ def build_executable():
     ])
 
     # 必要なファイルをdistフォルダにコピー
-    shutil.copy("config.ini", "dist/GroqWhisper")
+    shutil.copy("config.ini", "dist/GroqWhisper/_internal")
     shutil.copy("replacements.txt", "dist/GroqWhisper")
 
     print(f"Executable built successfully. Version: {new_version}")
