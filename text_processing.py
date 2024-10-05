@@ -1,20 +1,17 @@
-import os
 import threading
 from typing import Dict
 import logging
 import pyautogui
 import pyperclip
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 logger = logging.getLogger(__name__)
 
 
 def load_replacements(file_path: str = 'replacements.txt') -> Dict[str, str]:
     """置換ルールをファイルから読み込む。"""
     replacements = {}
-    full_path = r'C:\Users\yokam\PycharmProjects\groqwhisper\replacements.txt'
     try:
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
                 try:
                     old, new = line.strip().split(',')
@@ -22,7 +19,7 @@ def load_replacements(file_path: str = 'replacements.txt') -> Dict[str, str]:
                 except ValueError:
                     logger.warning(f"置換ファイルに無効な行があります: {line.strip()}")
     except FileNotFoundError:
-        logger.error(f"置換ファイルが見つかりません: {full_path}")
+        logger.error(f"置換ファイルが見つかりません: {file_path}")
         raise
     except IOError as e:
         logger.error(f"置換ファイルの読み込み中にエラーが発生しました: {e}")
