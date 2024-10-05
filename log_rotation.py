@@ -8,10 +8,8 @@ from datetime import datetime, timedelta
 
 def get_application_path():
     if getattr(sys, 'frozen', False):
-        # 実行ファイルとして実行されている場合
         return os.path.dirname(sys.executable)
     else:
-        # スクリプトとして実行されている場合
         return os.path.dirname(os.path.abspath(__file__))
 
 
@@ -46,7 +44,6 @@ def setup_logging(config):
         handlers=[file_handler]
     )
 
-    # 古いログファイルの削除
     cleanup_old_logs(log_directory, log_retention_days)
 
 
@@ -59,20 +56,3 @@ def cleanup_old_logs(log_directory, retention_days):
             if now - file_modification_time > timedelta(days=retention_days):
                 os.remove(file_path)
                 logging.info(f"古いログファイルを削除しました: {filename}")
-
-
-def main():
-    try:
-        config = load_config()
-        setup_logging(config)
-        logging.info("アプリケーションが起動しました。")
-        # ここに他のメイン処理を追加
-    except Exception as e:
-        print(f"エラーが発生しました: {e}")
-        # 標準のログ設定ができない場合のフォールバック
-        logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-        logging.error("ログ設定中にエラーが発生しました", exc_info=True)
-
-
-if __name__ == "__main__":
-    main()
