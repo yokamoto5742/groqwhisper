@@ -1,9 +1,0 @@
-2024-10-04 19:20:16,652 - __main__ - INFO - アプリケーションを開始します。バージョン: 1.0.3
-2024-10-04 19:20:17,183 - text_processing - ERROR - 置換ファイルが見つかりません: C:\Users\yokam\PycharmProjects\config\replacements.txt
-2024-10-04 19:20:17,183 - __main__ - ERROR - 置換ファイルが見つかりません。
-2024-10-04 19:21:15,437 - __main__ - INFO - アプリケーションを開始します。バージョン: 1.0.3
-2024-10-04 19:21:15,970 - text_processing - ERROR - 置換ファイルが見つかりません: C:\Users\yokam\PycharmProjects\config\replacements.txt
-2024-10-04 19:21:15,970 - __main__ - ERROR - 置換ファイルが見つかりません。
-2024-10-04 19:23:54,438 - __main__ - INFO - アプリケーションを開始します。バージョン: 1.0.3
-2024-10-04 19:23:54,999 - text_processing - ERROR - 置換ファイルが見つかりません: C:\Users\yokam\PycharmProjects\config\replacements.txt
-2024-10-04 19:23:54,999 - __main__ - ERROR - 置換ファイルが見つかりません。

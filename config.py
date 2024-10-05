@@ -1,13 +1,10 @@
 import configparser
 import os
 
-
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.ini')
 
 
 def load_config() -> configparser.ConfigParser:
-    """設定ファイルを読み込み、ConfigParserオブジェクトを返す。"""
     config = configparser.ConfigParser()
     try:
         with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
@@ -25,7 +22,6 @@ def load_config() -> configparser.ConfigParser:
 
 
 def save_config(config: configparser.ConfigParser) -> None:
-    """ConfigParserオブジェクトを設定ファイルに保存する。"""
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as configfile:
             config.write(configfile)
