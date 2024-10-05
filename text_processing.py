@@ -3,13 +3,27 @@ from typing import Dict
 import logging
 import pyautogui
 import pyperclip
+import os
+import sys
 
 logger = logging.getLogger(__name__)
 
 
-def load_replacements(file_path: str = 'replacements.txt') -> Dict[str, str]:
+def get_replacements_path():
+    if getattr(sys, 'frozen', False):
+        # PyInstallerでビルドされた実行ファイルの場合
+        base_path = sys._MEIPASS
+    else:
+        # 通常のPythonスクリプトとして実行される場合
+        base_path = os.path.dirname(__file__)
+
+    return os.path.join(base_path, 'replacements.txt')
+
+
+def load_replacements() -> Dict[str, str]:
     """置換ルールをファイルから読み込む。"""
     replacements = {}
+    file_path = get_replacements_path()
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -35,9 +49,9 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
 
 
 def copy_and_paste_transcription(
-    text: str,
-    replacements: Dict[str, str],
-    config: Dict[str, Dict[str, str]]
+        text: str,
+        replacements: Dict[str, str],
+        config: Dict[str, Dict[str, str]]
 ) -> None:
     """テキストを置換してクリップボードにコピーし、貼り付ける。"""
     if not text:

@@ -6,8 +6,8 @@ from gui import AudioRecorderGUI
 from text_processing import load_replacements
 from transcription import setup_groq_client
 
-VERSION = "1.0.3"
-LAST_UPDATED = "2024/10/05"
+VERSION = "1.0.4"
+LAST_UPDATED = "2024/10/06"
 
 
 def main():

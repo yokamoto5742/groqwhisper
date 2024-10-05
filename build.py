@@ -1,5 +1,4 @@
 import subprocess
-import shutil
 from version_manager import update_version, update_main_py
 
 
@@ -12,13 +11,10 @@ def build_executable():
         "--name=GroqWhisper",
         "--windowed",
         "--icon=assets/GroqWhisper.ico",
+        "--add-data", "config.ini:.",
+        "--add-data", "replacements.txt:.",
         "main.py"
     ])
-
-    # 必要なファイルをdistフォルダにコピー
-    shutil.copy("config.ini", "dist/GroqWhisper")
-    shutil.copy("config.ini", "dist/GroqWhisper/_internal")
-    shutil.copy("replacements.txt", "dist/GroqWhisper")
 
     print(f"Executable built successfully. Version: {new_version}")
 
