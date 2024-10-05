@@ -19,7 +19,7 @@ def setup_logging(config: configparser.ConfigParser) -> None:
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
 
-    log_file = os.path.join(log_directory, 'audio_recorder.log')
+    log_file = os.path.join(log_directory, 'groqwhisper.log')
 
     file_handler = TimedRotatingFileHandler(
         filename=log_file,

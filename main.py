@@ -2,6 +2,7 @@ import tkinter as tk
 
 from audio_recorder import AudioRecorder
 from config import load_config
+from log_rotation import setup_logging
 from gui import AudioRecorderGUI
 from text_processing import load_replacements
 from transcription import setup_groq_client
@@ -12,6 +13,7 @@ LAST_UPDATED = "2024/10/06"
 
 def main():
     config = load_config()
+    setup_logging(config)
     recorder = AudioRecorder(config)
     client = setup_groq_client()
     replacements = load_replacements()
