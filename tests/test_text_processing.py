@@ -1,6 +1,6 @@
-from unittest.mock import patch
 import tempfile
 import os
+from unittest.mock import patch
 from text_processing import load_replacements, replace_text, copy_and_paste_transcription
 
 
@@ -8,10 +8,14 @@ def test_load_replacements():
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
         temp_file.write("old,new\ntest,テスト")
 
-    replacements = load_replacements()
+    temp_file_path = temp_file.name
+
+    with patch('text_processing.get_replacements_path', return_value=temp_file_path):
+        replacements = load_replacements()
+
     assert replacements == {"old": "new", "test": "テスト"}
 
-    os.unlink(temp_file.name)
+    os.unlink(temp_file_path)
 
 
 def test_replace_text():
