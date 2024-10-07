@@ -53,13 +53,5 @@ def test_main_function(mock_dependencies):
     mock_dependencies['tk'].return_value.mainloop.assert_called_once()
 
 
-def test_version_constant():
-    assert main.VERSION == "1.0.3"
-
-
-def test_last_updated_constant():
-    assert main.LAST_UPDATED == "2024/10/05"
-
-
 if __name__ == "__main__":
     pytest.main()

@@ -8,7 +8,7 @@ def test_load_replacements():
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
         temp_file.write("old,new\ntest,テスト")
 
-    replacements = load_replacements(temp_file.name)
+    replacements = load_replacements()
     assert replacements == {"old": "new", "test": "テスト"}
 
     os.unlink(temp_file.name)
