@@ -1,13 +1,15 @@
 import logging
 import threading
 import tkinter as tk
+import traceback
+from functools import wraps
 from typing import Optional, List, Any, Dict
 
 import keyboard
 
 from audio_recorder import save_audio
 from config import save_config
-from text_processing import copy_and_paste_transcription, replace_text
+from text_processing import copy_and_paste_transcription, replace_text, safe_operation
 from transcription import transcribe_audio
 
 
@@ -221,8 +223,8 @@ class AudioRecorderGUI:
         label.pack(padx=20, pady=20)
         popup.after(duration, popup.destroy)
 
+    @safe_operation
     def process_audio(self, frames: List[bytes], sample_rate: int) -> None:
-        """音声データを処理"""
         try:
             temp_audio_file = save_audio(frames, sample_rate, self.config)
             if temp_audio_file:
@@ -236,7 +238,7 @@ class AudioRecorderGUI:
                 if transcription:
                     replaced_transcription = replace_text(transcription, self.replacements)
                     self.master.after(0, self.append_transcription, replaced_transcription)
-                    copy_and_paste_transcription(replaced_transcription, self.replacements, self.config)
+                    self.master.after(100, self.safe_copy_and_paste, replaced_transcription)
                 try:
                     import os
                     os.unlink(temp_audio_file)
@@ -245,9 +247,16 @@ class AudioRecorderGUI:
         except Exception as e:
             logging.error(f"音声処理中にエラーが発生しました: {str(e)}", exc_info=True)
         finally:
-            self.status_label.config(
-                text=f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止 {self.config['KEYS']['EXIT_APP']}キーで終了"
-            )
+            self.master.after(0, self.update_status_label)
+
+    def update_status_label(self):
+        self.status_label.config(
+            text=f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止 {self.config['KEYS']['EXIT_APP']}キーで終了"
+        )
+
+    @safe_operation
+    def safe_copy_and_paste(self, text):
+        copy_and_paste_transcription(text, self.replacements, self.config)
 
     def append_transcription(self, text: str) -> None:
         """トランスクリプションをテキストエリアに追加"""
