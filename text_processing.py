@@ -1,4 +1,6 @@
 import threading
+import traceback
+from functools import wraps
 from typing import Dict
 import logging
 import pyautogui
@@ -8,6 +10,15 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+def safe_operation(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"{func.__name__}でエラーが発生: {str(e)}")
+            logging.error(traceback.format_exc())
+    return wrapper
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
@@ -48,6 +59,7 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
     return text
 
 
+@safe_operation
 def copy_and_paste_transcription(
         text: str,
         replacements: Dict[str, str],
