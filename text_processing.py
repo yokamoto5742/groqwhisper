@@ -30,19 +30,20 @@ def get_replacements_path():
 
     return os.path.join(base_path, 'replacements.txt')
 
-
 def load_replacements() -> Dict[str, str]:
-    """置換ルールをファイルから読み込む。"""
     replacements = {}
     file_path = get_replacements_path()
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            for line in f:
+            for line_number, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue  # 空行をスキップ
                 try:
-                    old, new = line.strip().split(',')
-                    replacements[old] = new
+                    old, new = line.split(',')
+                    replacements[old.strip()] = new.strip()
                 except ValueError:
-                    logger.warning(f"置換ファイルに無効な行があります: {line.strip()}")
+                    logger.warning(f"置換ファイルの{line_number}行目に無効な行があります: {line}")
     except FileNotFoundError:
         logger.error(f"置換ファイルが見つかりません: {file_path}")
         raise
@@ -51,13 +52,10 @@ def load_replacements() -> Dict[str, str]:
         raise
     return replacements
 
-
 def replace_text(text: str, replacements: Dict[str, str]) -> str:
-    """テキスト内の特定の文字列を置換する。"""
     for old, new in replacements.items():
         text = text.replace(old, new)
     return text
-
 
 @safe_operation
 def copy_and_paste_transcription(
@@ -65,7 +63,6 @@ def copy_and_paste_transcription(
         replacements: Dict[str, str],
         config: Dict[str, Dict[str, str]]
 ) -> None:
-    """テキストを置換してクリップボードにコピーし、貼り付ける。"""
     if not text:
         logger.warning("空のテキストが提供されました。コピー＆ペースト操作をスキップします。")
         return
@@ -77,10 +74,10 @@ def copy_and_paste_transcription(
     try:
         paste_delay = float(config['CLIPBOARD']['PASTE_DELAY'])
     except KeyError:
-        logger.error("設定にPASTE_DELAYが見つかりません。デフォルト値の0.5秒を使用します。")
+        logger.error("設定にPASTE_DELAYが見つかりません。")
         paste_delay = 0.5
     except ValueError:
-        logger.error("設定のPASTE_DELAY値が無効です。デフォルト値の0.5秒を使用します。")
+        logger.error("設定のPASTE_DELAY値が無効です。")
         paste_delay = 0.5
 
     def paste_text():
@@ -88,7 +85,7 @@ def copy_and_paste_transcription(
             pyautogui.hotkey('ctrl', 'v')
             logger.info("テキストを正常に貼り付けました。")
         except pyautogui.FailSafeException:
-            logger.error("PyAutoGUIのフェイルセーフがトリガーされました。マウスの動きが中断されました。")
+            logger.error("PyAutoGUIのフェイルセーフがトリガーされました。")
         except Exception as e:
             logger.error(f"テキストの貼り付け中にエラーが発生しました: {e}")
 
