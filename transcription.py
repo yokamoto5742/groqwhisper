@@ -13,18 +13,18 @@ def setup_groq_client() -> Groq:
 
 
 def transcribe_audio(
-    audio_file_path: str,
-    use_punctuation: bool,
-    use_comma: bool,
-    config: dict,
-    client: Groq
+        audio_file_path: str,
+        use_punctuation: bool,
+        use_comma: bool,
+        config: dict,
+        client: Groq
 ) -> Optional[str]:
-    """音声ファイルをテキストに転写します。"""
     if not audio_file_path:
-        logging.warning("No audio file path provided")
+        logging.warning("音声ファイルパスが未指定")
         return None
 
     try:
+        logging.info("文字起こし開始")
         with open(audio_file_path, "rb") as file:
             transcription = client.audio.transcriptions.create(
                 file=(os.path.basename(audio_file_path), file.read()),
@@ -33,19 +33,20 @@ def transcribe_audio(
                 response_format="text",
                 language=config['WHISPER']['LANGUAGE']
             )
-    except FileNotFoundError:
-        logging.error(f"Audio file not found: {audio_file_path}")
-        return None
-    except IOError as e:
-        logging.error(f"IO error occurred while reading the audio file: {e}")
-        return None
+
+        if transcription:
+            # 重要な処理結果のみログ出力
+            logging.info(f"文字起こし完了: {len(transcription)}文字")
+
+            if not use_punctuation:
+                transcription = transcription.replace('。', '')
+            if not use_comma:
+                transcription = transcription.replace('、', '')
+
+        return transcription
+
     except Exception as e:
-        logging.error(f"An unexpected error occurred during transcription: {e}")
+        logging.error(f"文字起こしエラー: {str(e)}")
+        logging.debug(f"詳細: {traceback.format_exc()}")
         return None
 
-    if not use_punctuation:
-        transcription = transcription.replace('。', '')
-    if not use_comma:
-        transcription = transcription.replace('、', '')
-
-    return transcription

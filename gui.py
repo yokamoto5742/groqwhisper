@@ -195,16 +195,29 @@ class AudioRecorderGUI:
     def _stop_recording_process(self) -> None:
         """録音停止プロセス"""
         try:
+            logging.info("録音停止プロセスを開始します")
             frames, sample_rate = self.recorder.stop_recording()
+            logging.info(f"録音データを取得しました: フレーム数={len(frames)}, サンプルレート={sample_rate}")
+
             self.record_button.config(text='音声入力開始')
             self.status_label.config(text="テキスト出力中...")
-            threading.Thread(
+
+            # 音声処理スレッドの開始前にログを出力
+            logging.info("音声処理スレッドを開始します")
+            process_thread = threading.Thread(
                 target=self.process_audio,
                 args=(frames, sample_rate),
                 daemon=True
-            ).start()
+            )
+            process_thread.start()
+            logging.info("音声処理スレッドが開始されました")
+
         except Exception as e:
-            logging.error(f"音声入力の停止中にエラーが発生しました: {str(e)}", exc_info=True)
+            logging.error(f"音声入力の停止中にエラーが発生しました: {str(e)}")
+            logging.error(f"詳細なエラー情報: {traceback.format_exc()}")
+            # エラーが発生した場合でもUIを適切な状態に戻す
+            self.record_button.config(text='音声入力開始')
+            self.status_label.config(text=f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止")
 
     def show_five_second_notification(self) -> None:
         """5秒前の通知を表示"""

@@ -68,19 +68,20 @@ class AudioRecorder:
 
 def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[str]:
     try:
+        logging.info(f"音声ファイル保存開始: フレーム数={len(frames)}")
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
             wf = wave.open(temp_audio.name, "wb")
-            wf.setnchannels(int(config['AUDIO']['CHANNELS']))
+            channels = int(config['AUDIO']['CHANNELS'])
+
+            wf.setnchannels(channels)
             wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
             wf.setframerate(sample_rate)
             wf.writeframes(b"".join(frames))
             wf.close()
-            logging.info(f"音声ファイルを保存しました: {temp_audio.name}")
+
+            logging.info(f"音声ファイル保存完了: {temp_audio.name}")
             return temp_audio.name
-    except wave.Error as e:
-        logging.error(f"WAVファイルの作成中にエラーが発生しました: {e}")
-    except IOError as e:
-        logging.error(f"ファイルI/O操作中にエラーが発生しました: {e}")
     except Exception as e:
-        logging.error(f"音声ファイルの保存中に予期せぬエラーが発生しました: {e}")
-    return None
+        logging.error(f"音声ファイル保存エラー: {str(e)}")
+        logging.debug(f"詳細: {traceback.format_exc()}")
+        return None

@@ -57,6 +57,7 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
         text = text.replace(old, new)
     return text
 
+
 @safe_operation
 def copy_and_paste_transcription(
         text: str,
@@ -64,30 +65,26 @@ def copy_and_paste_transcription(
         config: Dict[str, Dict[str, str]]
 ) -> None:
     if not text:
-        logger.warning("空のテキストが提供されました。コピー＆ペースト操作をスキップします。")
+        logging.warning("空のテキスト")
         return
 
-    replaced_text = replace_text(text, replacements)
-    pyperclip.copy(replaced_text)
-    logger.info("テキストをクリップボードにコピーしました。")
-
     try:
-        paste_delay = float(config['CLIPBOARD']['PASTE_DELAY'])
-    except KeyError:
-        logger.error("設定にPASTE_DELAYが見つかりません。")
-        paste_delay = 0.5
-    except ValueError:
-        logger.error("設定のPASTE_DELAY値が無効です。")
-        paste_delay = 0.5
+        replaced_text = replace_text(text, replacements)
+        pyperclip.copy(replaced_text)
+        logging.info(f"クリップボードコピー完了: {len(replaced_text)}文字")
 
-    def paste_text():
-        try:
-            pyautogui.hotkey('ctrl', 'v')
-            logger.info("テキストを正常に貼り付けました。")
-        except pyautogui.FailSafeException:
-            logger.error("PyAutoGUIのフェイルセーフがトリガーされました。")
-        except Exception as e:
-            logger.error(f"テキストの貼り付け中にエラーが発生しました: {e}")
+        paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
 
-    threading.Timer(paste_delay, paste_text).start()
-    logger.info(f"{paste_delay}秒後に貼り付け操作をスケジュールしました。")
+        def paste_text():
+            try:
+                pyautogui.hotkey('ctrl', 'v')
+                logging.info("貼り付け完了")
+            except Exception as e:
+                logging.error(f"貼り付けエラー: {str(e)}")
+
+        threading.Timer(paste_delay, paste_text).start()
+        logging.info(f"貼り付け予約: {paste_delay}秒後")
+
+    except Exception as e:
+        logging.error(f"テキスト処理エラー: {str(e)}")
+        logging.debug(f"詳細: {traceback.format_exc()}")
