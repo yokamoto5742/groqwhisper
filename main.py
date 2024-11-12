@@ -3,15 +3,15 @@ from tkinter import messagebox
 import traceback
 import multiprocessing
 
-from audio_recorder import AudioRecorder
-from config import load_config
-from log_rotation import setup_logging
-from gui import AudioRecorderGUI
-from text_processing import load_replacements
-from transcription import setup_groq_client
+from service_audio_recorder import AudioRecorder
+from config_manager import load_config
+from service_log_rotation import setup_logging
+from app_window import AudioRecorderGUI
+from service_text_processing import load_replacements
+from service_transcription import setup_groq_client
 
-VERSION = "1.0.6"
-LAST_UPDATED = "2024/10/21"
+VERSION = "1.0.7"
+LAST_UPDATED = "2024/11/12"
 
 
 def main():

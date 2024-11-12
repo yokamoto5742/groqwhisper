@@ -7,10 +7,10 @@ from typing import Optional, List, Any, Dict
 
 import keyboard
 
-from audio_recorder import save_audio
-from config import save_config
-from text_processing import copy_and_paste_transcription, replace_text, safe_operation
-from transcription import transcribe_audio
+from service_audio_recorder import save_audio
+from config_manager import save_config
+from service_text_processing import copy_and_paste_transcription, replace_text, safe_operation
+from service_transcription import transcribe_audio
 
 
 class AudioRecorderGUI:

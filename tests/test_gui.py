@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock
 import tkinter as tk
-from gui import AudioRecorderGUI
-from config import load_config
+from app_window import AudioRecorderGUI
+from config_manager import load_config
 
 
 @pytest.fixture

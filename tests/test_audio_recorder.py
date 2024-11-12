@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from audio_recorder import AudioRecorder, save_audio
+from service_audio_recorder import AudioRecorder, save_audio
 
 
 def test_audio_recorder_init():

@@ -1,7 +1,7 @@
 import tempfile
 import os
 from unittest.mock import patch
-from text_processing import load_replacements, replace_text, copy_and_paste_transcription
+from service_text_processing import load_replacements, replace_text, copy_and_paste_transcription
 
 
 def test_load_replacements():

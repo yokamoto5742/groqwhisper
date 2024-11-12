@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 import tempfile
 import os
-from transcription import transcribe_audio
+from service_transcription import transcribe_audio
 
 
 @patch('groq.Groq')
