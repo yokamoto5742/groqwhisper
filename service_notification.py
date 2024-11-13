@@ -1,0 +1,65 @@
+import tkinter as tk
+import logging
+from typing import Dict, Any, Optional
+
+
+class NotificationManager:
+    def __init__(self, master: tk.Tk, config: Dict[str, Any]):
+        self.master = master
+        self.config = config
+        self.current_popup: Optional[tk.Toplevel] = None
+
+    def show_timed_message(self, title: str, message: str, duration: int = 2000) -> None:
+        if self.current_popup:
+            try:
+                self.current_popup.destroy()
+            except tk.TclError:
+                pass
+
+        try:
+            self.current_popup = tk.Toplevel(self.master)
+            self.current_popup.title(title)
+            self.current_popup.attributes('-topmost', True)
+
+            label = tk.Label(self.current_popup, text=message)
+            label.pack(padx=20, pady=20)
+
+            self.current_popup.after(duration, self._destroy_popup)
+
+        except Exception as e:
+            logging.error(f"通知表示中にエラーが発生しました: {str(e)}")
+
+    def show_error_message(self, title: str, message: str) -> None:
+        try:
+            self.show_timed_message(f"エラー: {title}", message, 3000)
+        except Exception as e:
+            logging.error(f"エラー通知の表示中にエラーが発生しました: {str(e)}")
+
+    def show_status_message(self, message: str) -> None:
+        try:
+            status_text = f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止 {message}"
+            self.master.after(0, lambda: self._update_status_label(status_text))
+        except Exception as e:
+            logging.error(f"ステータス更新中にエラーが発生しました: {str(e)}")
+
+    def _destroy_popup(self) -> None:
+        try:
+            if self.current_popup:
+                self.current_popup.destroy()
+                self.current_popup = None
+        except tk.TclError:
+            pass
+        except Exception as e:
+            logging.error(f"ポップアップの破棄中にエラーが発生しました: {str(e)}")
+
+    def _update_status_label(self, text: str) -> None:
+        status_label = self.master.children.get('status_label')
+        if status_label:
+            status_label.config(text=text)
+
+    def cleanup(self) -> None:
+        if self.current_popup:
+            try:
+                self.current_popup.destroy()
+            except tk.TclError:
+                pass
