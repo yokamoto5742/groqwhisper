@@ -1,3 +1,4 @@
+import os
 import logging
 import threading
 import tkinter as tk
@@ -135,7 +136,6 @@ class RecordingController:
                     self.master.after(100, self.safe_copy_and_paste, replaced_transcription)
 
                 try:
-                    import os
                     os.unlink(temp_audio_file)
                 except OSError as e:
                     logging.error(f"一時ファイルの削除中にエラーが発生しました: {str(e)}", exc_info=True)

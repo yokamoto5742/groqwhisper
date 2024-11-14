@@ -35,7 +35,6 @@ def transcribe_audio(
             )
 
         if transcription:
-            # 重要な処理結果のみログ出力
             logging.info(f"文字起こし完了: {len(transcription)}文字")
 
             if not use_punctuation:
