@@ -10,7 +10,7 @@ def test_load_replacements():
 
     temp_file_path = temp_file.name
 
-    with patch('text_processing.get_replacements_path', return_value=temp_file_path):
+    with patch('service_text_processing.get_replacements_path', return_value=temp_file_path):
         replacements = load_replacements()
 
     assert replacements == {"old": "new", "test": "テスト"}
