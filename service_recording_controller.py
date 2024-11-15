@@ -132,8 +132,12 @@ class RecordingController:
 
                 if transcription:
                     replaced_transcription = replace_text(transcription, self.replacements)
-                    self.master.after(0, self.ui_callbacks['append_transcription'], replaced_transcription)
-                    self.master.after(100, self.safe_copy_and_paste, replaced_transcription)
+
+                    def append_and_copy():
+                        self.ui_callbacks['append_transcription'](replaced_transcription)
+                        self.master.after(500, lambda: self.safe_copy_and_paste(replaced_transcription))
+
+                    self.master.after(0, append_and_copy)
 
                 try:
                     os.unlink(temp_audio_file)
