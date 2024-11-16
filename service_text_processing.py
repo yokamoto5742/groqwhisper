@@ -22,10 +22,8 @@ def safe_operation(func):
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
-        # PyInstallerでビルドされた実行ファイルの場合
         base_path = sys._MEIPASS
     else:
-        # 通常のPythonスクリプトとして実行される場合
         base_path = os.path.dirname(__file__)
 
     return os.path.join(base_path, 'replacements.txt')
@@ -38,7 +36,7 @@ def load_replacements() -> Dict[str, str]:
             for line_number, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
-                    continue  # 空行をスキップ
+                    continue
                 try:
                     old, new = line.split(',')
                     replacements[old.strip()] = new.strip()
@@ -70,8 +68,9 @@ def copy_and_paste_transcription(
 
     try:
         replaced_text = replace_text(text, replacements)
+        logging.info(f"テキスト置換完了")
         pyperclip.copy(replaced_text)
-        logging.info(f"クリップボードコピー完了: {len(replaced_text)}文字")
+        logging.info(f"クリップボードコピー完了")
 
         paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
 
@@ -83,7 +82,6 @@ def copy_and_paste_transcription(
                 logging.error(f"貼り付けエラー: {str(e)}")
 
         threading.Timer(paste_delay, paste_text).start()
-        logging.info(f"貼り付け予約: {paste_delay}秒後")
 
     except Exception as e:
         logging.error(f"テキスト処理エラー: {str(e)}")
