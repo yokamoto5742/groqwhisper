@@ -11,9 +11,6 @@ from service_text_processing import replace_text, copy_and_paste_transcription
 
 
 def enhanced_safe_operation(method):
-    """
-    Enhanced safe operation decorator that properly propagates errors to the UI
-    """
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -22,7 +19,6 @@ def enhanced_safe_operation(method):
         except Exception as e:
             error_msg = f"{method.__name__}でエラーが発生しました: {str(e)}"
             logging.error(error_msg, exc_info=True)
-            # メインスレッドで実行されていない場合、UIの更新を安全に行う
             if threading.current_thread() is not threading.main_thread():
                 self.master.after(0, lambda: self._handle_error(error_msg))
             else:
@@ -61,7 +57,6 @@ class RecordingController:
         self.use_comma: bool = config['WHISPER'].getboolean('USE_COMMA', True)
 
     def _handle_error(self, error_msg: str) -> None:
-        """エラーを統一的に処理するメソッド"""
         self.show_notification("エラー", error_msg)
         self.ui_callbacks['update_status_label'](
             f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
@@ -105,7 +100,6 @@ class RecordingController:
 
     @enhanced_safe_operation
     def _safe_record(self) -> None:
-        """録音処理を安全に実行するメソッド"""
         try:
             self.recorder.record()
         except Exception as e:
@@ -135,7 +129,6 @@ class RecordingController:
 
     @enhanced_safe_operation
     def _stop_recording_process(self) -> None:
-        logging.info("録音停止プロセスを開始します")
         frames, sample_rate = self.recorder.stop_recording()
         logging.info(f"録音データを取得しました: フレーム数={len(frames)}, サンプルレート={sample_rate}")
 
@@ -152,7 +145,6 @@ class RecordingController:
         logging.info("音声処理スレッドが開始されました")
 
     def _check_process_thread(self, thread: threading.Thread) -> None:
-        """処理スレッドの状態を監視し、UIを適切に更新する"""
         if not thread.is_alive():
             self.ui_callbacks['update_status_label'](
                 f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
@@ -174,7 +166,6 @@ class RecordingController:
 
     @enhanced_safe_operation
     def _safe_process_audio(self, frames: List[bytes], sample_rate: int) -> None:
-        """音声処理を安全に実行し、エラーを適切に処理するメソッド"""
         temp_audio_file = None
         try:
             temp_audio_file = save_audio(frames, sample_rate, self.config)
@@ -206,7 +197,6 @@ class RecordingController:
 
     @enhanced_safe_operation
     def _safe_ui_update(self, text: str) -> None:
-        """UIの更新を安全に実行するメソッド"""
         if not text:
             return
 
@@ -216,11 +206,9 @@ class RecordingController:
 
     @enhanced_safe_operation
     def _safe_copy_and_paste(self, text: str) -> None:
-        """コピー&ペースト操作を安全に実行するメソッド"""
         copy_and_paste_transcription(text, self.replacements, self.config)
 
     def cleanup(self) -> None:
-        """アプリケーション終了時のクリーンアップ処理"""
         if self.recording_timer and self.recording_timer.is_alive():
             self.recording_timer.cancel()
         if self.five_second_timer:
@@ -229,5 +217,4 @@ class RecordingController:
         if self.paste_timer:
             self.paste_timer.cancel()
         if self.processing_thread and self.processing_thread.is_alive():
-            # スレッドの強制終了は避けるべきだが、アプリケーション終了時は例外
             self.processing_thread = None
