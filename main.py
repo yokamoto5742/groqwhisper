@@ -29,7 +29,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        multiprocessing.freeze_support()
+        multiprocessing.freeze_support() # 念のため残しておく
         main()
 
     except Exception as e:

@@ -37,7 +37,7 @@ def load_config() -> configparser.ConfigParser:
 def save_config(config: configparser.ConfigParser) -> None:
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as configfile:
-            config.write(configfile) # type: ignore
+            config.write(configfile)
     except PermissionError:
         print(f"設定ファイルを書き込む権限がありません: {CONFIG_PATH}")
         raise
