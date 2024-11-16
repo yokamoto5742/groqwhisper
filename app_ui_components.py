@@ -38,7 +38,7 @@ class UIComponents:
             text='音声入力開始',
             command=self._toggle_recording
         )
-        self.record_button.pack(pady=10)
+        self.record_button.pack(pady=5)
 
         self.transcription_text = tk.Text(
             self.master,
