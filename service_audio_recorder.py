@@ -31,8 +31,6 @@ class AudioRecorder:
             self.is_recording = True
             self.frames = []
             self.logger.info("音声入力を開始しました。")
-        except OSError as e:
-            self.logger.error(f"音声入力の開始中にOSエラーが発生しました: {e}")
         except Exception as e:
             self.logger.error(f"音声入力の開始中に予期せぬエラーが発生しました: {e}")
 
@@ -45,10 +43,9 @@ class AudioRecorder:
             if self.p:
                 self.p.terminate()
             self.logger.info("音声入力を停止しました。")
-        except OSError as e:
-            self.logger.error(f"音声入力の停止中にOSエラーが発生しました: {e}")
         except Exception as e:
             self.logger.error(f"音声入力の停止中に予期せぬエラーが発生しました: {e}")
+
         return self.frames, self.sample_rate
 
     def record(self) -> None:
@@ -56,15 +53,10 @@ class AudioRecorder:
             try:
                 data = self.stream.read(self.chunk)
                 self.frames.append(data)
-            except OSError as e:
-                self.logger.error(f"音声入力中にOSエラーが発生しました: {e}")
-                self.is_recording = False
-                break
             except Exception as e:
                 self.logger.error(f"音声入力中に予期せぬエラーが発生しました: {e}")
                 self.is_recording = False
                 break
-
 
 def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[str]:
     try:
@@ -83,5 +75,4 @@ def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[
             return temp_audio.name
     except Exception as e:
         logging.error(f"音声ファイル保存エラー: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
         return None
