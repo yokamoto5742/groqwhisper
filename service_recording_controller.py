@@ -83,7 +83,7 @@ class RecordingController:
             f"音声入力中... ({self.config['KEYS']['TOGGLE_RECORDING']}キーで停止)"
         )
 
-        recording_thread = threading.Thread(target=self._safe_record, daemon=True)
+        recording_thread = threading.Thread(target=self._safe_record, daemon=False)
         recording_thread.start()
 
         auto_stop_timer = int(self.config['RECORDING']['AUTO_STOP_TIMER'])
@@ -130,7 +130,7 @@ class RecordingController:
     @enhanced_safe_operation
     def _stop_recording_process(self) -> None:
         frames, sample_rate = self.recorder.stop_recording()
-        logging.info(f"録音データを取得しました: フレーム数={len(frames)}, サンプルレート={sample_rate}")
+        logging.info(f"録音データを取得しました: フレーム数={len(frames)}")
 
         self.ui_callbacks['update_record_button'](False)
         self.ui_callbacks['update_status_label']("テキスト出力中...")
@@ -138,7 +138,7 @@ class RecordingController:
         self.processing_thread = threading.Thread(
             target=self._safe_process_audio,
             args=(frames, sample_rate),
-            daemon=True
+            daemon=False
         )
         self.processing_thread.start()
         self.master.after(100, self._check_process_thread, self.processing_thread)

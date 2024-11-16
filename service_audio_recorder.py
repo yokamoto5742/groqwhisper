@@ -68,7 +68,7 @@ class AudioRecorder:
 
 def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[str]:
     try:
-        logging.info(f"音声ファイル保存開始: フレーム数={len(frames)}")
+        logging.info(f"音声ファイル保存開始")
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
             wf = wave.open(temp_audio.name, "wb")
             channels = int(config['AUDIO']['CHANNELS'])
