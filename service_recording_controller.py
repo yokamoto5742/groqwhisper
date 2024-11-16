@@ -97,15 +97,26 @@ class RecordingController:
             process_thread = threading.Thread(
                 target=self.process_audio,
                 args=(frames, sample_rate),
-                daemon=True
+                daemon=False
             )
             process_thread.start()
+            self.master.after(100, self._check_process_thread, process_thread)
             logging.info("音声処理スレッドが開始されました")
 
         except Exception as e:
             logging.error(f"録音の停止中にエラーが発生しました: {str(e)}")
             logging.error(f"詳細なエラー情報: {threading.format_exc()}")
             self.ui_callbacks['update_record_button'](False)
+            self.ui_callbacks['update_status_label'](
+                f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
+            )
+
+    def _check_process_thread(self, thread):
+        if thread.is_alive():
+            self.master.after(100, self._check_process_thread, thread)
+            self.ui_callbacks['update_status_label']("テキスト出力中...")
+        else:
+            logging.info("音声処理スレッドが完了しました")
             self.ui_callbacks['update_status_label'](
                 f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
             )
