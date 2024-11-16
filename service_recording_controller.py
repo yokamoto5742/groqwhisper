@@ -30,6 +30,7 @@ class RecordingController:
 
         self.recording_timer: Optional[threading.Timer] = None
         self.five_second_timer: Optional[str] = None
+        self.paste_timer = None
         self.five_second_notification_shown: bool = False
 
         self.use_punctuation: bool = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
@@ -119,37 +120,53 @@ class RecordingController:
 
     @safe_operation
     def process_audio(self, frames: List[bytes], sample_rate: int) -> None:
+        temp_audio_file = None
         try:
             temp_audio_file = save_audio(frames, sample_rate, self.config)
-            if temp_audio_file:
-                transcription = transcribe_audio(
-                    temp_audio_file,
-                    self.use_punctuation,
-                    self.use_comma,
-                    self.config,
-                    self.client
-                )
+            if not temp_audio_file:
+                raise ValueError("音声ファイルの保存に失敗しました")
 
-                if transcription:
-                    replaced_transcription = replace_text(transcription, self.replacements)
+            transcription = transcribe_audio(
+                temp_audio_file,
+                self.use_punctuation,
+                self.use_comma,
+                self.config,
+                self.client
+            )
+            if not transcription:
+                raise ValueError("文字起こしに失敗しました")
 
-                    def append_and_copy():
-                        self.ui_callbacks['append_transcription'](replaced_transcription)
-                        self.master.after(500, lambda: self.safe_copy_and_paste(replaced_transcription))
+            replaced_transcription = replace_text(transcription, self.replacements)
 
-                    self.master.after(0, append_and_copy)
+            self.master.after(0, lambda: self._safe_ui_update(replaced_transcription))
 
+        except Exception as e:
+            error_message = f"音声処理中にエラーが発生しました: {str(e)}"
+            logging.error(error_message, exc_info=True)
+            self.master.after(0, lambda: self.show_notification("エラー", error_message))
+
+        finally:
+            if temp_audio_file and os.path.exists(temp_audio_file):
                 try:
                     os.unlink(temp_audio_file)
                 except OSError as e:
                     logging.error(f"一時ファイルの削除中にエラーが発生しました: {str(e)}", exc_info=True)
 
-        except Exception as e:
-            logging.error(f"音声処理中にエラーが発生しました: {str(e)}", exc_info=True)
-            self.show_notification("エラー", "音声処理中にエラーが発生しました")
-
-        finally:
             self.master.after(0, self.update_status_label)
+
+    def _safe_ui_update(self, text: str) -> None:
+        if not text:
+            return
+
+        try:
+            self.ui_callbacks['append_transcription'](text)
+            paste_delay = float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
+            self.master.after(int(paste_delay * 1000), lambda: self.safe_copy_and_paste(text))
+
+        except Exception as e:
+            error_message = f"UI更新エラー: {str(e)}"
+            logging.error(error_message, exc_info=True)
+            self.show_notification("エラー", "テキスト処理中にエラーが発生しました")
 
     def update_status_label(self) -> None:
         self.ui_callbacks['update_status_label'](
@@ -167,3 +184,5 @@ class RecordingController:
         if self.five_second_timer:
             self.master.after_cancel(self.five_second_timer)
             self.five_second_timer = None
+        if self.paste_timer:
+            self.paste_timer.cancel()
