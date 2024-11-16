@@ -60,7 +60,7 @@ class AudioRecorderGUI:
             self.close_application
         )
 
-        start_minimized = self.config['OPTIONS'].getboolean('START_MINIMIZED', False)
+        start_minimized = self.config['OPTIONS'].getboolean('START_MINIMIZED', True)
         if start_minimized:
             self.master.iconify()
 
