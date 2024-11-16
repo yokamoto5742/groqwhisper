@@ -5,7 +5,6 @@ from groq import Groq
 
 
 def setup_groq_client() -> Groq:
-    """Groqクライアントをセットアップし返します。"""
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set")

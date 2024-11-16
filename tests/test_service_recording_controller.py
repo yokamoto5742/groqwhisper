@@ -142,20 +142,25 @@ def test_process_audio(
     frames = [b'dummy_audio_data']
     sample_rate = 44100
 
-    # master.afterのモックを追加し、即時実行するように設定
+    # afterの呼び出しを即時実行するように設定
     def execute_callback(delay, callback, *args):
         if callback:
             callback(*args) if args else callback()
 
     with patch.object(recording_controller.master, 'after') as mock_after:
         mock_after.side_effect = execute_callback
-        recording_controller.process_audio(frames, sample_rate)
+        # configのモックを追加
+        with patch.dict(recording_controller.config, {
+            'CLIPBOARD': {'PASTE_DELAY': '0.5'}
+        }):
+            recording_controller._safe_process_audio(frames, sample_rate)
 
-    # 各モックの呼び出しを確認
-    assert mock_save.called
-    assert mock_transcribe.called
-    assert mock_replace.called
-    assert mock_copy_paste.called
+            # この時点で全ての非同期処理が実行されているはず
+            # 各モックの呼び出しを確認
+            assert mock_save.called
+            assert mock_transcribe.called
+            assert mock_replace.called
+            assert mock_copy_paste.called
 
 
 def test_show_five_second_notification(recording_controller):
