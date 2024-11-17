@@ -167,7 +167,7 @@ class RecordingController:
             if not replaced_transcription:
                 raise ValueError("テキスト置換に失敗しました")
 
-            self.master.after(0, lambda: self._safe_ui_update(replaced_transcription))
+            self.master.after(0, lambda: self.ui_update(replaced_transcription))
 
         finally:
             if temp_audio_file and os.path.exists(temp_audio_file):
@@ -177,16 +177,16 @@ class RecordingController:
                     logging.error(f"一時ファイルの削除中にエラーが発生しました: {str(e)}", exc_info=True)
 
     @safe_operation
-    def _safe_ui_update(self, text: str) -> None:
+    def ui_update(self, text: str) -> None:
         if not text:
             return
 
         self.ui_callbacks['append_transcription'](text)
         paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.5)) * 1000)
-        self.master.after(paste_delay, lambda: self._safe_copy_and_paste(text))
+        self.master.after(paste_delay, lambda: self.copy_and_paste(text))
 
     @safe_operation
-    def _safe_copy_and_paste(self, text: str) -> None:
+    def copy_and_paste(self, text: str) -> None:
         copy_and_paste_transcription(text, self.replacements, self.config)
 
     def cleanup(self) -> None:
