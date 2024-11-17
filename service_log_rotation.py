@@ -41,7 +41,7 @@ def setup_logging(config: configparser.ConfigParser) -> None:
 def cleanup_old_logs(log_directory: str, retention_days: int) -> None:
     now = datetime.now()
     for filename in os.listdir(log_directory):
-        if filename.endswith('.log') and filename != 'audio_recorder.log':
+        if filename.endswith('.log') and filename != 'groqwhisper.log':
             file_path = os.path.join(log_directory, filename)
             file_modification_time = datetime.fromtimestamp(os.path.getmtime(file_path))
             if now - file_modification_time > timedelta(days=retention_days):
