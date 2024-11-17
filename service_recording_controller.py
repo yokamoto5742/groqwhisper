@@ -8,24 +8,7 @@ from functools import wraps
 from service_audio_recorder import save_audio
 from service_transcription import transcribe_audio
 from service_text_processing import replace_text, copy_and_paste_transcription
-
-
-def enhanced_safe_operation(method):
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        try:
-            return method(self, *args, **kwargs)
-        except Exception as e:
-            error_msg = f"{method.__name__}でエラーが発生しました: {str(e)}"
-            logging.error(error_msg, exc_info=True)
-            if threading.current_thread() is not threading.main_thread():
-                self.master.after(0, lambda: self._handle_error(error_msg))
-            else:
-                self._handle_error(error_msg)
-            return None
-
-    return wrapper
+from decorator_safe_operation import safe_operation
 
 
 class RecordingController:
@@ -65,14 +48,14 @@ class RecordingController:
         if self.recorder.is_recording:
             self.recorder.stop_recording()
 
-    @enhanced_safe_operation
+    @safe_operation
     def toggle_recording(self) -> None:
         if not self.recorder.is_recording:
             self.start_recording()
         else:
             self.stop_recording()
 
-    @enhanced_safe_operation
+    @safe_operation
     def start_recording(self) -> None:
         if self.processing_thread and self.processing_thread.is_alive():
             raise RuntimeError("前回の処理が完了していません")
@@ -98,7 +81,7 @@ class RecordingController:
 
         logging.info("録音を開始しました")
 
-    @enhanced_safe_operation
+    @safe_operation
     def _safe_record(self) -> None:
         try:
             self.recorder.record()
@@ -106,7 +89,7 @@ class RecordingController:
             self.master.after(0, lambda: self._handle_error(f"録音中にエラーが発生しました: {str(e)}"))
             self.stop_recording()
 
-    @enhanced_safe_operation
+    @safe_operation
     def stop_recording(self) -> None:
         try:
             if self.recording_timer and self.recording_timer.is_alive():
@@ -119,7 +102,7 @@ class RecordingController:
         except Exception as e:
             self._handle_error(f"録音の停止中にエラーが発生しました: {str(e)}")
 
-    @enhanced_safe_operation
+    @safe_operation
     def auto_stop_recording(self) -> None:
         self.master.after(0, self._auto_stop_recording_ui)
 
@@ -127,7 +110,7 @@ class RecordingController:
         self.show_notification("自動停止", "音声入力を自動停止しました")
         self._stop_recording_process()
 
-    @enhanced_safe_operation
+    @safe_operation
     def _stop_recording_process(self) -> None:
         frames, sample_rate = self.recorder.stop_recording()
         logging.info(f"録音データを取得しました: フレーム数={len(frames)}")
@@ -136,7 +119,7 @@ class RecordingController:
         self.ui_callbacks['update_status_label']("テキスト出力中...")
 
         self.processing_thread = threading.Thread(
-            target=self._safe_process_audio,
+            target=self.process_audio,
             args=(frames, sample_rate),
             daemon=False
         )
@@ -155,7 +138,6 @@ class RecordingController:
         self.ui_callbacks['update_status_label']("テキスト出力中...")
         self.master.after(100, self._check_process_thread, thread)
 
-    @enhanced_safe_operation
     def show_five_second_notification(self) -> None:
         if self.recorder.is_recording and not self.five_second_notification_shown:
             self.master.lift()
@@ -164,14 +146,13 @@ class RecordingController:
             self.show_notification("自動停止", "あと5秒で音声入力を停止します")
             self.five_second_notification_shown = True
 
-    @enhanced_safe_operation
-    def _safe_process_audio(self, frames: List[bytes], sample_rate: int) -> None:
-        temp_audio_file = None
-        try:
-            temp_audio_file = save_audio(frames, sample_rate, self.config)
-            if not temp_audio_file:
-                raise ValueError("音声ファイルの保存に失敗しました")
+    @safe_operation
+    def process_audio(self, frames: List[bytes], sample_rate: int) -> None:
+        temp_audio_file = save_audio(frames, sample_rate, self.config)
+        if not temp_audio_file:
+            raise ValueError("音声ファイルの保存に失敗しました")
 
+        try:
             transcription = transcribe_audio(
                 temp_audio_file,
                 self.use_punctuation,
@@ -195,7 +176,7 @@ class RecordingController:
                 except OSError as e:
                     logging.error(f"一時ファイルの削除中にエラーが発生しました: {str(e)}", exc_info=True)
 
-    @enhanced_safe_operation
+    @safe_operation
     def _safe_ui_update(self, text: str) -> None:
         if not text:
             return
@@ -204,7 +185,7 @@ class RecordingController:
         paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.5)) * 1000)
         self.master.after(paste_delay, lambda: self._safe_copy_and_paste(text))
 
-    @enhanced_safe_operation
+    @safe_operation
     def _safe_copy_and_paste(self, text: str) -> None:
         copy_and_paste_transcription(text, self.replacements, self.config)
 

@@ -1,24 +1,14 @@
 import threading
-import traceback
-from functools import wraps
-from typing import Dict
 import logging
 import pyautogui
 import pyperclip
 import os
 import sys
+from typing import Dict
+
+from decorator_safe_operation import safe_operation
 
 logger = logging.getLogger(__name__)
-
-def safe_operation(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            logging.error(f"{func.__name__}でエラーが発生: {str(e)}")
-            logging.error(traceback.format_exc())
-    return wrapper
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
@@ -55,7 +45,6 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
         text = text.replace(old, new)
     return text
 
-
 @safe_operation
 def copy_and_paste_transcription(
         text: str,
@@ -66,23 +55,15 @@ def copy_and_paste_transcription(
         logging.warning("空のテキスト")
         return
 
-    try:
-        replaced_text = replace_text(text, replacements)
-        logging.info(f"テキスト置換完了")
-        pyperclip.copy(replaced_text)
-        logging.info(f"クリップボードコピー完了")
+    replaced_text = replace_text(text, replacements)
+    logging.info(f"テキスト置換完了")
+    pyperclip.copy(replaced_text)
+    logging.info(f"クリップボードコピー完了")
 
-        paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
+    paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
 
-        def paste_text():
-            try:
-                pyautogui.hotkey('ctrl', 'v')
-                logging.info("貼り付け完了")
-            except Exception as e:
-                logging.error(f"貼り付けエラー: {str(e)}")
+    def paste_text():
+        pyautogui.hotkey('ctrl', 'v')
+        logging.info("貼り付け完了")
 
-        threading.Timer(paste_delay, paste_text).start()
-
-    except Exception as e:
-        logging.error(f"テキスト処理エラー: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+    threading.Timer(paste_delay, paste_text).start()
