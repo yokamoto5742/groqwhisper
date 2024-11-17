@@ -9,7 +9,7 @@ class NotificationManager:
         self.config = config
         self.current_popup: Optional[tk.Toplevel] = None
 
-    def show_timed_message(self, title: str, message: str, duration: int = 2000) -> None:
+    def show_timed_message(self, title: str, message: str, duration: int = 1000) -> None:
         if self.current_popup:
             try:
                 self.current_popup.destroy()
@@ -31,7 +31,7 @@ class NotificationManager:
 
     def show_error_message(self, title: str, message: str) -> None:
         try:
-            self.show_timed_message(f"エラー: {title}", message, 3000)
+            self.show_timed_message(f"エラー: {title}", message, 2000)
         except Exception as e:
             logging.error(f"エラー通知の表示中にエラーが発生しました: {str(e)}")
 
