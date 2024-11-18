@@ -66,7 +66,7 @@ class RecordingController:
             f"音声入力中... ({self.config['KEYS']['TOGGLE_RECORDING']}キーで停止)"
         )
 
-        recording_thread = threading.Thread(target=self._safe_record, daemon=False)
+        recording_thread = threading.Thread(target=self._safe_record, daemon=False) # アプリケーションが落ちるのを防ぐためFalseにしている
         recording_thread.start()
 
         auto_stop_timer = int(self.config['RECORDING']['AUTO_STOP_TIMER'])
