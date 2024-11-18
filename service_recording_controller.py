@@ -81,13 +81,8 @@ class RecordingController:
 
         logging.info("録音を開始しました")
 
-    @safe_operation
     def _safe_record(self) -> None:
-        try:
-            self.recorder.record()
-        except Exception as e:
-            self.master.after(0, lambda: self._handle_error(f"録音中にエラーが発生しました: {str(e)}"))
-            self.stop_recording()
+        self.recorder.record()
 
     @safe_operation
     def stop_recording(self) -> None:
