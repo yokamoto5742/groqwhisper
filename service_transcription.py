@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Optional
 from groq import Groq
-
+import traceback
 
 def setup_groq_client() -> Groq:
     api_key = os.environ.get("GROQ_API_KEY")
