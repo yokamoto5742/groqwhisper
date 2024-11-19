@@ -7,7 +7,7 @@ import traceback
 def setup_groq_client() -> Groq:
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY environment variable is not set")
+        raise ValueError("GROQ_API_KEYの環境変数が未設定です")
     return Groq(api_key=api_key)
 
 
