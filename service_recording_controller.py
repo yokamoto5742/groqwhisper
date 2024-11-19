@@ -48,7 +48,6 @@ class RecordingController:
         if self.recorder.is_recording:
             self.recorder.stop_recording()
 
-    @safe_operation
     def toggle_recording(self) -> None:
         if not self.recorder.is_recording:
             self.start_recording()
@@ -84,7 +83,6 @@ class RecordingController:
     def _safe_record(self) -> None:
         self.recorder.record()
 
-    @safe_operation
     def stop_recording(self) -> None:
         try:
             if self.recording_timer and self.recording_timer.is_alive():
@@ -97,7 +95,6 @@ class RecordingController:
         except Exception as e:
             self._handle_error(f"録音の停止中にエラーが発生しました: {str(e)}")
 
-    @safe_operation
     def auto_stop_recording(self) -> None:
         self.master.after(0, self._auto_stop_recording_ui)
 
@@ -114,9 +111,9 @@ class RecordingController:
         self.ui_callbacks['update_status_label']("テキスト出力中...")
 
         self.processing_thread = threading.Thread(
-            target=self.process_audio,
+            target=self.transcribe_audio_frames,
             args=(frames, sample_rate),
-            daemon=False
+            daemon=False # アプリケーションが落ちるのを防ぐためFalseにしている
         )
         self.processing_thread.start()
         self.master.after(100, self._check_process_thread, self.processing_thread)
@@ -142,7 +139,7 @@ class RecordingController:
             self.five_second_notification_shown = True
 
     @safe_operation
-    def process_audio(self, frames: List[bytes], sample_rate: int) -> None:
+    def transcribe_audio_frames(self, frames: List[bytes], sample_rate: int) -> None:
         temp_audio_file = save_audio(frames, sample_rate, self.config)
         if not temp_audio_file:
             raise ValueError("音声ファイルの保存に失敗しました")
