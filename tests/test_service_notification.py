@@ -55,7 +55,7 @@ def test_show_timed_message(notification_manager, mock_toplevel):
 def test_show_error_message(notification_manager):
     with patch.object(notification_manager, 'show_timed_message') as mock_show:
         notification_manager.show_error_message("エラー", "エラーメッセージ")
-        mock_show.assert_called_with("エラー: エラー", "エラーメッセージ", 3000)
+        mock_show.assert_called_with("エラー: エラー", "エラーメッセージ", 2000)
 
 
 def test_show_status_message(notification_manager):

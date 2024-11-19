@@ -134,7 +134,7 @@ def test_stop_recording(recording_controller, mock_ui_callbacks):
 @patch('service_recording_controller.transcribe_audio')
 @patch('service_recording_controller.replace_text')
 @patch('service_recording_controller.copy_and_paste_transcription')
-def test_process_audio(
+def test_transcribe_audio_frames(
         mock_copy_paste,
         mock_replace,
         mock_transcribe,
@@ -143,31 +143,43 @@ def test_process_audio(
         mock_ui_callbacks
 ):
     """音声処理のテスト"""
-    # モックの戻り値を設定
-    mock_save.return_value = tempfile.mktemp()
-    mock_transcribe.return_value = "テスト音声"  # エラーを返さないように設定
-    mock_replace.return_value = "変換後テキスト"
+    temp_file = tempfile.mktemp()
+    transcription_text = "テスト音声"
+    replaced_text = "変換後テキスト"
 
-    frames = [b'dummy_audio_data']
+    frames = [b'dummy_audio_data'] * 1000
     sample_rate = 44100
 
-    def execute_callback(delay, callback, *args):
-        if callback:
-            callback(*args) if args else callback()
+    # モックの設定
+    mock_save.return_value = temp_file
+    mock_transcribed = Mock()
+    mock_transcribed.__str__ = lambda x: transcription_text
+    mock_transcribed.__len__ = lambda x: len(transcription_text)
+    mock_transcribe.return_value = transcription_text
+
+    mock_replace.return_value = replaced_text
 
     with patch.object(recording_controller.master, 'after') as mock_after:
+        def execute_callback(delay, callback, *args):
+            if callback:
+                callback(*args) if args else callback()
+
         mock_after.side_effect = execute_callback
-        recording_controller.process_audio(frames, sample_rate)
 
-        # 各モックが正しく呼び出されたことを確認
-        assert mock_save.called
-        assert mock_transcribe.called
-        assert mock_replace.called
-        assert mock_copy_paste.called
+        # テストの実行
+        recording_controller.transcribe_audio_frames(frames, sample_rate)
 
-        # エラーが発生していないことを確認
-        mock_ui_callbacks['update_status_label'].assert_any_call("音声ファイルを保存しました")
-        mock_ui_callbacks['update_status_label'].assert_any_call("文字起こしを完了しました")
+        mock_save.assert_called_once_with(frames, sample_rate, recording_controller.config)
+        mock_transcribe.assert_called_once_with(
+            temp_file,
+            recording_controller.use_punctuation,
+            recording_controller.use_comma,
+            recording_controller.config,
+            recording_controller.client
+        )
+        mock_replace.assert_called_once_with(transcription_text, recording_controller.replacements)
+
+        mock_ui_callbacks['append_transcription'].assert_called_with(replaced_text)
 
 
 def test_show_five_second_notification(recording_controller):
