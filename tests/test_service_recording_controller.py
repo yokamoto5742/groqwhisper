@@ -4,10 +4,12 @@ from typing import Dict, Any
 import threading
 import tempfile
 from configparser import ConfigParser
+import logging
 from service_recording_controller import RecordingController
 
+# このテストはERRORレベルのメッセージを非表示にする
+logging.getLogger().setLevel(logging.CRITICAL)
 
-# Tkinterのモック
 @pytest.fixture
 def mock_tk():
     with patch('tkinter.Tk') as mock:
@@ -152,11 +154,8 @@ def test_transcribe_audio_frames(
 
     # モックの設定
     mock_save.return_value = temp_file
-    mock_transcribed = Mock()
-    mock_transcribed.__str__ = lambda x: transcription_text
-    mock_transcribed.__len__ = lambda x: len(transcription_text)
+    # transcribe_audioの戻り値を直接文字列に設定
     mock_transcribe.return_value = transcription_text
-
     mock_replace.return_value = replaced_text
 
     with patch.object(recording_controller.master, 'after') as mock_after:
@@ -178,7 +177,6 @@ def test_transcribe_audio_frames(
             recording_controller.client
         )
         mock_replace.assert_called_once_with(transcription_text, recording_controller.replacements)
-
         mock_ui_callbacks['append_transcription'].assert_called_with(replaced_text)
 
 
