@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 import tkinter as tk
+import logging
 from service_keyboard_handler import KeyboardHandler
 
 
@@ -110,6 +111,7 @@ def test_cleanup_success(mock_unhook_all):
 
 @patch('keyboard.unhook_all')
 def test_cleanup_error(mock_unhook_all, caplog):
+    caplog.set_level(logging.ERROR)
     mock_unhook_all.side_effect = Exception("テストエラー")
 
     KeyboardHandler.cleanup()

@@ -7,8 +7,6 @@ from configparser import ConfigParser
 import logging
 from service_recording_controller import RecordingController
 
-# このテストはERRORレベルのメッセージを非表示にする
-logging.getLogger().setLevel(logging.CRITICAL)
 
 @pytest.fixture
 def mock_tk():
@@ -144,6 +142,7 @@ def test_transcribe_audio_frames(
         recording_controller,
         mock_ui_callbacks
 ):
+    logging.getLogger().setLevel(logging.CRITICAL) # ERRORレベルのメッセージを非表示にする
     """音声処理のテスト"""
     temp_file = tempfile.mktemp()
     transcription_text = "テスト音声"
