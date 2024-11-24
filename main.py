@@ -10,7 +10,7 @@ from app_window import AudioRecorderGUI
 from service_text_processing import load_replacements
 from service_transcription import setup_groq_client
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 LAST_UPDATED = "2024/11/24"
 
 
