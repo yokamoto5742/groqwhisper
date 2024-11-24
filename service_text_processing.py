@@ -18,6 +18,7 @@ def get_replacements_path():
 
     return os.path.join(base_path, 'replacements.txt')
 
+@safe_operation
 def load_replacements() -> Dict[str, str]:
     replacements = {}
     file_path = get_replacements_path()
@@ -40,6 +41,7 @@ def load_replacements() -> Dict[str, str]:
         raise
     return replacements
 
+@safe_operation
 def replace_text(text: str, replacements: Dict[str, str]) -> str:
     for old, new in replacements.items():
         text = text.replace(old, new)
