@@ -18,10 +18,11 @@ def get_replacements_path():
 
     return os.path.join(base_path, 'replacements.txt')
 
-@safe_operation
+
 def load_replacements() -> Dict[str, str]:
     replacements = {}
     file_path = get_replacements_path()
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             for line_number, line in enumerate(f, 1):
@@ -33,12 +34,14 @@ def load_replacements() -> Dict[str, str]:
                     replacements[old.strip()] = new.strip()
                 except ValueError:
                     logger.warning(f"置換ファイルの{line_number}行目に無効な行があります: {line}")
-    except FileNotFoundError:
-        logger.error(f"置換ファイルが見つかりません: {file_path}")
-        raise
+                    continue  # 無効な行をスキップして続行
     except IOError as e:
         logger.error(f"置換ファイルの読み込み中にエラーが発生しました: {e}")
-        raise
+        return {}  # 空の辞書を返して続行
+    except Exception as e:
+        logger.error(f"予期せぬエラーが発生しました: {e}")
+        return {}  # 予期せぬエラーの場合も空の辞書を返して続行
+
     return replacements
 
 @safe_operation
