@@ -4,6 +4,6 @@ logs/
 .idea/
 
 *.spec
+*.iml
 
-groqwhisper.iml
-misc.xml.idea
+misc.xml

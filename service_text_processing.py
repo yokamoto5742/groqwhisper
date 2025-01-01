@@ -101,7 +101,6 @@ def copy_and_paste_transcription(
         return
 
     try:
-        # テキスト置換は1回だけ実行
         replaced_text = replace_text(text, replacements)
         if not replaced_text:
             logging.error("テキスト置換結果が空です")
@@ -111,7 +110,7 @@ def copy_and_paste_transcription(
         pyperclip.copy(replaced_text)
         logging.info("クリップボードコピー完了")
 
-        paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.5))
+        paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.1))
 
         def paste_text():
             try:
@@ -126,25 +125,3 @@ def copy_and_paste_transcription(
     except Exception as e:
         logging.error(f"コピー&ペースト処理でエラー: {str(e)}", exc_info=True)
         raise
-
-
-# service_recording_controller.py のui_updateメソッドも修正
-
-@safe_operation
-def ui_update(self, text: str) -> None:
-    if not text:
-        logging.warning("空のテキストが渡されました")
-        return
-
-    # テキストをUIに追加
-    self.ui_callbacks['append_transcription'](text)
-
-    # 貼り付け処理を遅延実行
-    paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.5)) * 1000)
-    self.master.after(paste_delay, lambda: self.copy_and_paste(text))
-
-
-@safe_operation
-def copy_and_paste(self, text: str) -> None:
-    # テキスト置換とクリップボード操作は1回だけ実行
-    copy_and_paste_transcription(text, self.replacements, self.config)

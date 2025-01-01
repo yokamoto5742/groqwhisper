@@ -171,10 +171,14 @@ class RecordingController:
     @safe_operation
     def ui_update(self, text: str) -> None:
         if not text:
+            logging.warning("空のテキストが渡されました")
             return
 
+        # テキストをUIに追加
         self.ui_callbacks['append_transcription'](text)
-        paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.5)) * 1000)
+
+        # 貼り付け処理を遅延実行
+        paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
         self.master.after(paste_delay, lambda: self.copy_and_paste(text))
 
     @safe_operation
