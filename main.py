@@ -1,7 +1,9 @@
+import sys
 import tkinter as tk
 from tkinter import messagebox
 import traceback
 import multiprocessing
+import logging
 
 from service_audio_recorder import AudioRecorder
 from config_manager import load_config
