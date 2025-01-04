@@ -153,13 +153,9 @@ class RecordingController:
                 self.client
             )
             if not transcription:
-                raise ValueError("文字起こしに失敗しました")
+                raise ValueError("音声ファイルの文字起こしに失敗しました")
 
-            replaced_transcription = replace_text(transcription, self.replacements)
-            if not replaced_transcription:
-                raise ValueError("テキスト置換に失敗しました")
-
-            self.master.after(0, lambda: self.ui_update(replaced_transcription))
+            self.master.after(0, lambda: self.ui_update(transcription))
 
         finally:
             if temp_audio_file and os.path.exists(temp_audio_file):

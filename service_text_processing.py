@@ -69,11 +69,9 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
 
     try:
         result = text
-        # 置換の開始時に1回だけログを出力
         logging.info(f"テキスト置換開始 - 文字数: {len(text)}")
         logging.info(f"置換ルール数: {len(replacements)}")
 
-        # 個別の置換処理をデバッグレベルに変更
         for old, new in replacements.items():
             if old in result:
                 before_replace = result
@@ -81,7 +79,6 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
                 if before_replace != result:
                     logging.debug(f"置換実行: '{old}' → '{new}'")
 
-        # 最終結果のログ出力
         logging.info("テキスト置換完了")
         return result
 
