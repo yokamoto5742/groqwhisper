@@ -9,7 +9,7 @@ class NotificationManager:
         self.config = config
         self.current_popup: Optional[tk.Toplevel] = None
 
-    def show_timed_message(self, title: str, message: str, duration: int = 1000) -> None:
+    def show_timed_message(self, title: str, message: str, duration: int = 1000):
         if self.current_popup:
             try:
                 self.current_popup.destroy()
@@ -29,20 +29,20 @@ class NotificationManager:
         except Exception as e:
             logging.error(f"通知表示中にエラーが発生しました: {str(e)}")
 
-    def show_error_message(self, title: str, message: str) -> None:
+    def show_error_message(self, title: str, message: str):
         try:
             self.show_timed_message(f"エラー: {title}", message, 2000)
         except Exception as e:
             logging.error(f"エラー通知の表示中にエラーが発生しました: {str(e)}")
 
-    def show_status_message(self, message: str) -> None:
+    def show_status_message(self, message: str):
         try:
             status_text = f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止 {message}"
             self.master.after(0, lambda: self._update_status_label(status_text))
         except Exception as e:
             logging.error(f"ステータス更新中にエラーが発生しました: {str(e)}")
 
-    def _destroy_popup(self) -> None:
+    def _destroy_popup(self):
         try:
             if self.current_popup:
                 self.current_popup.destroy()
@@ -53,12 +53,12 @@ class NotificationManager:
         finally:
             self.current_popup = None
 
-    def _update_status_label(self, text: str) -> None:
+    def _update_status_label(self, text: str):
         status_label = self.master.children.get('status_label')
         if status_label:
             status_label.config(text=text)
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         if self.current_popup:
             try:
                 self.current_popup.destroy()

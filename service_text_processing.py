@@ -6,18 +6,16 @@ import os
 import sys
 from typing import Dict
 
-from decorator_safe_operation import safe_operation
-
 logger = logging.getLogger(__name__)
+
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
     else:
         base_path = os.path.dirname(__file__)
-
+        
     return os.path.join(base_path, 'replacements.txt')
-
 
 def load_replacements() -> Dict[str, str]:
     replacements = {}
@@ -56,8 +54,6 @@ def load_replacements() -> Dict[str, str]:
 
     return replacements
 
-
-@safe_operation
 def replace_text(text: str, replacements: Dict[str, str]) -> str:
     if not text:
         logging.error("入力テキストが空です")
@@ -86,13 +82,11 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
         logging.error(f"テキスト置換中にエラーが発生: {str(e)}", exc_info=True)
         return text
 
-
-@safe_operation
 def copy_and_paste_transcription(
         text: str,
         replacements: Dict[str, str],
         config: Dict[str, Dict[str, str]]
-) -> None:
+):
     if not text:
         logging.warning("空のテキスト")
         return
@@ -103,7 +97,6 @@ def copy_and_paste_transcription(
             logging.error("テキスト置換結果が空です")
             return
 
-        # クリップボードへのコピー
         pyperclip.copy(replaced_text)
         logging.info("クリップボードコピー完了")
 
@@ -116,7 +109,6 @@ def copy_and_paste_transcription(
             except Exception as e:
                 logging.error(f"貼り付け処理でエラー: {str(e)}", exc_info=True)
 
-        # 貼り付け処理のタイマー設定
         threading.Timer(paste_delay, paste_text).start()
 
     except Exception as e:

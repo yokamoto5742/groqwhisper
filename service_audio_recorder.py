@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 
 
 class AudioRecorder:
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict):
         self.sample_rate = int(config['AUDIO']['SAMPLE_RATE'])
         self.channels = int(config['AUDIO']['CHANNELS'])
         self.chunk = int(config['AUDIO']['CHUNK'])
@@ -18,7 +18,7 @@ class AudioRecorder:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
 
-    def start_recording(self) -> None:
+    def start_recording(self):
         try:
             self.p = pyaudio.PyAudio()
             self.stream = self.p.open(
@@ -48,7 +48,7 @@ class AudioRecorder:
 
         return self.frames, self.sample_rate
 
-    def record(self) -> None:
+    def record(self):
         while self.is_recording:
             try:
                 data = self.stream.read(self.chunk)

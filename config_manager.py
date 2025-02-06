@@ -13,9 +13,7 @@ def get_config_path():
 
     return os.path.join(base_path, 'config.ini')
 
-
 CONFIG_PATH = get_config_path()
-
 
 def load_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
@@ -33,8 +31,7 @@ def load_config() -> configparser.ConfigParser:
         raise
     return config
 
-
-def save_config(config: configparser.ConfigParser) -> None:
+def save_config(config: configparser.ConfigParser):
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as configfile:
             config.write(configfile)
