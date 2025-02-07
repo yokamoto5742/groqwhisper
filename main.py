@@ -7,7 +7,7 @@ import logging
 
 from config_manager import load_config
 from service_audio_recorder import AudioRecorder
-from service_log_rotation import setup_logging
+from log_rotation import setup_logging
 from app_window import VoiceInputManager
 from service_text_processing import load_replacements
 from service_transcription import setup_groq_client
