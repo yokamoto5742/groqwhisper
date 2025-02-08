@@ -5,6 +5,8 @@ import os
 import logging
 from typing import Optional, Dict, Any
 
+from config_manager import get_config_value
+
 
 class ReplacementsEditor:
     def __init__(self, parent: tk.Tk, config: Dict[str, Any]):
@@ -13,15 +15,19 @@ class ReplacementsEditor:
 
         self.config = config
         self.window = tk.Toplevel(parent)
-        self.window.title('テキスト置換設定')
-        self.window.geometry('500x400')
+        self.window.title('テキスト置換登録( 置換前 , 置換後 )')
+        window_width = get_config_value(self.config, 'EDITOR', 'width', 400)
+        window_height = get_config_value(self.config, 'EDITOR', 'height', 700)
+        self.window.geometry(f'{window_width}x{window_height}')
 
-        # メインのテキストエリア
+        font_name = get_config_value(self.config, 'EDITOR', 'font_name', 'MS Gothic')
+        font_size = get_config_value(self.config, 'EDITOR', 'font_size', 12)
         self.text_area = tk.Text(
             self.window,
             wrap=tk.WORD,
             width=50,
-            height=20
+            height=20,
+            font=(font_name, font_size)
         )
         self.text_area.pack(expand=True, fill='both', padx=10, pady=5)
 

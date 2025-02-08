@@ -15,6 +15,16 @@ def get_config_path():
 
 CONFIG_PATH = get_config_path()
 
+def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: any) -> any:
+    """
+    設定値を安全に取得する関数
+    """
+    try:
+        value = config[section][key]
+        return type(default)(value)
+    except (KeyError, ValueError, TypeError):
+        return default
+
 def load_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     try:
