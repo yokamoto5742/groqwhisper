@@ -1,6 +1,8 @@
 import tkinter as tk
 from typing import Optional, Dict, Any, Callable
 
+from service_text_editor import ReplacementsEditor
+
 
 class UIComponents:
     def __init__(
@@ -66,7 +68,7 @@ class UIComponents:
         self.replace_button = tk.Button(
             self.master,
             text='テキスト置換登録',
-            command=lambda: None,  # 機能はpass
+            command=self.open_replacements_editor,
             width=20
         )
         self.replace_button.pack(pady=5)
@@ -99,3 +101,6 @@ class UIComponents:
         self.punctuation_status_label.config(
             text=f'現在句読点{"あり" if use_punctuation else "なし"}'
         )
+
+    def open_replacements_editor(self) -> None:
+        editor = ReplacementsEditor(self.master, self.config)
