@@ -38,5 +38,6 @@ if __name__ == "__main__":
 
         root = tk.Tk()
         root.withdraw()
-        messagebox.showerror("エラー", f"エラーが発生しました。詳細は error_log.txt を確認してください。\n\n{str(e)}")
+        messagebox.showerror("エラー", f"予期せぬエラーが発生しました。\n\n{str(e)}")
+        os.startfile('error_log.txt')
         sys.exit(1)
