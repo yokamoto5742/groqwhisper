@@ -1,32 +1,104 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+import pyaudio
+import wave
+import tempfile
 from service_audio_recorder import AudioRecorder, save_audio
 
 
-def test_audio_recorder_init():
-    config = {'AUDIO': {'SAMPLE_RATE': '44100', 'CHANNELS': '1', 'CHUNK': '1024'}}
-    recorder = AudioRecorder(config)
-    assert recorder.sample_rate == 44100
-    assert recorder.channels == 1
-    assert recorder.chunk == 1024
+@pytest.fixture
+def config():
+    return {
+        'AUDIO': {
+            'SAMPLE_RATE': '44100',
+            'CHANNELS': '2',
+            'CHUNK': '1024'
+        }
+    }
 
 
-@pytest.mark.skip(reason="PyAudioの初期化が必要なため、CIでは実行できない")
-def test_audio_recorder_start_stop():
-    config = {'AUDIO': {'SAMPLE_RATE': '44100', 'CHANNELS': '1', 'CHUNK': '1024'}}
-    recorder = AudioRecorder(config)
-    recorder.start_recording()
-    assert recorder.is_recording == True
-    frames, sample_rate = recorder.stop_recording()
-    assert recorder.is_recording == False
-    assert len(frames) > 0
-    assert sample_rate == 44100
+@pytest.fixture
+def mock_pyaudio():
+    with patch('pyaudio.PyAudio') as mock:
+        mock_stream = Mock()
+        mock_stream.read.return_value = b'dummy_audio_data'
+        mock.return_value.open.return_value = mock_stream
+        mock.return_value.get_sample_size.return_value = 2
+        yield mock
 
 
-def test_save_audio():
-    frames = [b'\x00' * 1024] * 10  # ダミーのオーディオフレーム
-    config = {'AUDIO': {'CHANNELS': '1'}}
-    with patch('wave.open'):
-        file_path = save_audio(frames, 44100, config)
-    assert file_path is not None
-    assert file_path.endswith('.wav')
+class TestAudioRecorder:
+    def test_init(self, config):
+        recorder = AudioRecorder(config)
+        assert recorder.sample_rate == 44100
+        assert recorder.channels == 2
+        assert recorder.chunk == 1024
+        assert recorder.frames == []
+        assert not recorder.is_recording
+
+    def test_start_recording(self, config, mock_pyaudio):
+        recorder = AudioRecorder(config)
+        recorder.start_recording()
+
+        assert recorder.is_recording
+        assert recorder.frames == []
+        mock_pyaudio.assert_called_once()
+        mock_pyaudio.return_value.open.assert_called_once_with(
+            format=pyaudio.paInt16,
+            channels=2,
+            rate=44100,
+            input=True,
+            frames_per_buffer=1024
+        )
+
+    def test_stop_recording(self, config, mock_pyaudio):
+        recorder = AudioRecorder(config)
+        recorder.start_recording()
+        frames, sample_rate = recorder.stop_recording()
+
+        assert not recorder.is_recording
+        assert sample_rate == 44100
+        mock_pyaudio.return_value.open.return_value.stop_stream.assert_called_once()
+        mock_pyaudio.return_value.open.return_value.close.assert_called_once()
+        mock_pyaudio.return_value.terminate.assert_called_once()
+
+    def test_record(self, config, mock_pyaudio):
+        recorder = AudioRecorder(config)
+        recorder.start_recording()
+
+        # モックストリームがダミーデータを返すように設定
+        mock_stream = mock_pyaudio.return_value.open.return_value
+        mock_stream.read.return_value = b'dummy_audio_data'
+
+        # 一時的にis_recordingをTrueに設定し、数回のループ後にFalseにする
+        recorder.is_recording = True
+
+        def side_effect(*args, **kwargs):
+            recorder.is_recording = False
+            return b'dummy_audio_data'
+
+        mock_stream.read.side_effect = side_effect
+
+        recorder.record()
+
+        # フレームが1回分記録されていることを確認
+        assert len(recorder.frames) == 1
+        assert recorder.frames[0] == b'dummy_audio_data'
+
+    @patch('tempfile.NamedTemporaryFile')
+    @patch('wave.open')
+    def test_save_audio(self, mock_wave_open, mock_temp_file, config):
+        frames = [b'dummy_audio_data']
+        sample_rate = 44100
+
+        mock_temp_file.return_value.__enter__.return_value.name = 'test.wav'
+        mock_wave = Mock()
+        mock_wave_open.return_value = mock_wave
+
+        result = save_audio(frames, sample_rate, config)
+
+        assert result == 'test.wav'
+        mock_wave.setnchannels.assert_called_once_with(2)
+        mock_wave.setframerate.assert_called_once_with(sample_rate)
+        mock_wave.writeframes.assert_called_once_with(b'dummy_audio_data')
+        mock_wave.close.assert_called_once()
