@@ -1,4 +1,5 @@
 import tkinter as tk
+import pyautogui
 from typing import Optional, Dict, Any, Callable
 
 from service_text_editor import ReplacementsEditor
@@ -23,7 +24,7 @@ class UIComponents:
         self.replace_button: Optional[tk.Button] = None
         self.close_button: Optional[tk.Button] = None
 
-    def setup_ui(self, version: str) -> None:
+    def setup_ui(self, version: str):
         self.master.title(f'音声入力メモ v{version}')
 
         window_width = int(self.config['WINDOW'].get('width', 350))
@@ -59,7 +60,7 @@ class UIComponents:
         self.history_button = tk.Button(
             self.master,
             text='クリップボード履歴',
-            command=lambda: None,  # 機能はpass
+            command=self.open_clipboard_history,
             width=20
         )
         self.history_button.pack(pady=5)
@@ -89,18 +90,22 @@ class UIComponents:
         )
         self.status_label.pack(pady=10)
 
-    def update_record_button(self, is_recording: bool) -> None:
+    def update_record_button(self, is_recording: bool):
         self.record_button.config(
             text=f'音声入力{"停止" if is_recording else "開始"}:{self.config["KEYS"]["TOGGLE_RECORDING"]}'
         )
 
-    def update_status_label(self, text: str) -> None:
+    def update_status_label(self, text: str):
         self.status_label.config(text=text)
 
-    def update_punctuation_button(self, use_punctuation: bool) -> None:
+    def update_punctuation_button(self, use_punctuation: bool):
         self.punctuation_status_label.config(
             text=f'現在句読点{"あり" if use_punctuation else "なし"}'
         )
 
-    def open_replacements_editor(self) -> None:
-        editor = ReplacementsEditor(self.master, self.config)
+    @staticmethod
+    def open_clipboard_history():
+        pyautogui.hotkey('win', 'v')
+
+    def open_replacements_editor(self):
+        ReplacementsEditor(self.master, self.config)

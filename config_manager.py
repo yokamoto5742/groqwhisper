@@ -1,6 +1,7 @@
 import configparser
 import os
 import sys
+from typing import Any
 
 
 def get_config_path():
@@ -15,7 +16,7 @@ def get_config_path():
 
 CONFIG_PATH = get_config_path()
 
-def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: any) -> any:
+def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: Any) -> Any:
     """
     設定値を安全に取得する関数
     """
