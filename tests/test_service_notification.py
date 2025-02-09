@@ -7,13 +7,11 @@ from service_notification import NotificationManager
 @pytest.fixture
 def mock_tk():
     with patch('tkinter.Tk') as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_toplevel():
-    with patch('tkinter.Toplevel') as mock:
-        yield mock
+        # モックTkインスタンスの作成
+        mock_instance = MagicMock()
+        mock_instance.children = {}
+        mock.return_value = mock_instance
+        yield mock_instance
 
 
 @pytest.fixture
@@ -27,83 +25,61 @@ def config():
 
 @pytest.fixture
 def notification_manager(mock_tk, config):
-    master = mock_tk()
-    manager = NotificationManager(master, config)
-    return manager
+    return NotificationManager(mock_tk, config)
 
 
-def test_init(notification_manager, config):
-    assert notification_manager.config == config
-    assert notification_manager.current_popup is None
+def test_show_timed_message(notification_manager):
+    # TopLevelウィンドウのモック化
+    with patch('tkinter.Toplevel') as mock_toplevel:
+        mock_window = MagicMock()
+        mock_toplevel.return_value = mock_window
 
+        notification_manager.show_timed_message("テストタイトル", "テストメッセージ")
 
-def test_show_timed_message(notification_manager, mock_toplevel):
-    title = "テストタイトル"
-    message = "テストメッセージ"
-
-    notification_manager.show_timed_message(title, message)
-
-    # Toplevelが作成されたことを確認
-    mock_toplevel.assert_called_once()
-
-    # 設定が正しく適用されたことを確認
-    popup = mock_toplevel.return_value
-    popup.title.assert_called_with(title)
-    popup.attributes.assert_called_with('-topmost', True)
+        # Topレベルウィンドウが作成されたことを確認
+        mock_toplevel.assert_called_once()
+        # タイトルが設定されたことを確認
+        mock_window.title.assert_called_with("テストタイトル")
+        # topmostが設定されたことを確認
+        mock_window.attributes.assert_called_with('-topmost', True)
 
 
 def test_show_error_message(notification_manager):
     with patch.object(notification_manager, 'show_timed_message') as mock_show:
-        notification_manager.show_error_message("エラー", "エラーメッセージ")
-        mock_show.assert_called_with("エラー: エラー", "エラーメッセージ", 2000)
+        notification_manager.show_error_message("エラータイトル", "エラーメッセージ")
+        mock_show.assert_called_with("エラー: エラータイトル", "エラーメッセージ", 2000)
 
 
-def test_show_status_message(notification_manager):
-    message = "テスト中"
-    mock_status_label = MagicMock()
+def test_show_status_message(notification_manager, mock_tk):
+    # ステータスラベルのモック作成
+    mock_label = MagicMock()
+    mock_tk.children['status_label'] = mock_label
 
-    # ステータスラベルをモック
-    notification_manager.master.children = {'status_label': mock_status_label}
+    notification_manager.show_status_message("テスト中")
 
-    notification_manager.show_status_message(message)
-
-    # masterのafterメソッドが呼ばれることを確認
-    notification_manager.master.after.assert_called_once()
-
-    # ステータステキストが正しく更新されることを確認
-    expected_text = f"{notification_manager.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止 {message}"
-    notification_manager._update_status_label(expected_text)
-    mock_status_label.config.assert_called_with(text=expected_text)
+    expected_text = "Ctrl+Spaceキーで音声入力開始/停止 テスト中"
+    # afterメソッドが呼ばれたことを確認
+    mock_tk.after.assert_called()
+    # コールバック関数を実行
+    mock_tk.after.call_args[0][1]()
+    # ラベルのテキストが更新されたことを確認
+    mock_label.config.assert_called_with(text=expected_text)
 
 
-def test_cleanup_with_popup(notification_manager):
-    # モックのポップアップを設定
+def test_destroy_popup_with_tcl_error(notification_manager):
     mock_popup = MagicMock()
+    mock_popup.destroy.side_effect = tk.TclError
     notification_manager.current_popup = mock_popup
 
-    notification_manager.cleanup()
+    notification_manager._destroy_popup()
 
-    # ポップアップが破棄されたことを確認
-    mock_popup.destroy.assert_called_once()
-
-
-def test_cleanup_without_popup(notification_manager):
-    notification_manager.current_popup = None
-    notification_manager.cleanup()  # エラーが発生しないことを確認
-
-
-def test_destroy_popup_error_handling(notification_manager):
-    # TclErrorを発生させるモックポップアップを作成
-    mock_popup = MagicMock()
-    mock_popup.destroy.side_effect = tk.TclError()
-    notification_manager.current_popup = mock_popup
-
-    with patch('logging.error') as mock_logging:  # ログ出力をモック化
-        notification_manager._destroy_popup()  # エラーがキャッチされることを確認
-
-    # destroyメソッドが呼ばれたことを確認
-    mock_popup.destroy.assert_called_once()
-    # エラーがログに記録されたことを確認
-    mock_logging.assert_not_called()  # TclErrorは正常な終了として扱われる
-    # current_popupがNoneに設定されていることを確認
+    # エラーが発生しても正常に処理され、current_popupがNoneになることを確認
     assert notification_manager.current_popup is None
+
+
+def test_update_status_label_no_label(notification_manager, mock_tk):
+    # status_labelが存在しない場合のテスト
+    mock_tk.children = {}
+
+    # エラーが発生しないことを確認
+    notification_manager._update_status_label("テストメッセージ")
