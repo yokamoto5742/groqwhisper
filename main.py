@@ -1,8 +1,8 @@
 import sys
+import os
 import tkinter as tk
 from tkinter import messagebox
 import traceback
-import multiprocessing
 import logging
 
 from config_manager import load_config
