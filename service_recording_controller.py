@@ -169,12 +169,44 @@ class RecordingController:
         copy_and_paste_transcription(text, self.replacements, self.config)
 
     def cleanup(self):
-        if self.recording_timer and self.recording_timer.is_alive():
-            self.recording_timer.cancel()
-        if self.five_second_timer:
-            self.master.after_cancel(self.five_second_timer)
-            self.five_second_timer = None
-        if self.paste_timer:
-            self.paste_timer.cancel()
+        """
+        アプリケーション終了時のクリーンアップ処理
+        """
+        try:
+            self._wait_for_processing()
+
+            if self.recording_timer and self.recording_timer.is_alive():
+                logging.info("録音タイマーをキャンセルします")
+                self.recording_timer.cancel()
+
+            if self.five_second_timer:
+                logging.info("5秒前通知タイマーをキャンセルします")
+                self.master.after_cancel(self.five_second_timer)
+                self.five_second_timer = None
+
+            if self.paste_timer:
+                logging.info("ペーストタイマーをキャンセルします")
+                self.paste_timer.cancel()
+
+            if self.processing_thread and self.processing_thread.is_alive():
+                logging.info("処理スレッドの終了を待機中...")
+                self.processing_thread.join(timeout=5.0)
+                if self.processing_thread.is_alive():
+                    logging.warning("処理スレッドがタイムアウトしました")
+                self.processing_thread = None
+                logging.info("処理スレッドのクリーンアップ完了")
+
+        except Exception as e:
+            logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}", exc_info=True)
+            raise
+
+    def _wait_for_processing(self):
         if self.processing_thread and self.processing_thread.is_alive():
-            self.processing_thread = None
+            logging.info("処理スレッドの完了を待機中...")
+            self.ui_callbacks['update_status_label']("処理完了待機中...")
+            self.processing_thread.join(timeout=5.0)
+
+            if self.processing_thread.is_alive():
+                logging.warning("処理スレッドの待機がタイムアウトしました")
+            else:
+                logging.info("処理スレッドの待機が完了しました")
