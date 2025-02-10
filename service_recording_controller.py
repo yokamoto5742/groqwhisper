@@ -97,8 +97,9 @@ class RecordingController:
         self.master.after(0, self._auto_stop_recording_ui)
 
     def _auto_stop_recording_ui(self):
-        self.show_notification("自動停止", "音声入力を自動停止しました")
+        self.show_notification("自動停止", "アプリケーションを終了します")
         self._stop_recording_process()
+        self.master.after(1000, self.master.quit)
 
     def _stop_recording_process(self):
         frames, sample_rate = self.recorder.stop_recording()
