@@ -21,6 +21,7 @@ class RecordingController:
             ui_callbacks: Dict[str, Callable],
             notification_callback: Callable
     ):
+        self.cancel_processing = None
         self.master = master
         self.config = config
         self.recorder = recorder
@@ -137,11 +138,16 @@ class RecordingController:
             self.five_second_notification_shown = True
 
     def transcribe_audio_frames(self, frames: List[bytes], sample_rate: int):
-        temp_audio_file = save_audio(frames, sample_rate, self.config)
-        if not temp_audio_file:
-            raise ValueError("音声ファイルの保存に失敗しました")
-
+        temp_audio_file = None
         try:
+            temp_audio_file = save_audio(frames, sample_rate, self.config)
+            if not temp_audio_file:
+                raise ValueError("音声ファイルの保存に失敗しました")
+
+            if hasattr(self, 'cancel_processing') and self.cancel_processing:
+                logging.info("処理がキャンセルされました")
+                return
+
             transcription = transcribe_audio(
                 temp_audio_file,
                 self.use_punctuation,
@@ -149,17 +155,25 @@ class RecordingController:
                 self.config,
                 self.client
             )
+
             if not transcription:
                 raise ValueError("音声ファイルの文字起こしに失敗しました")
 
+            if hasattr(self, 'cancel_processing') and self.cancel_processing:
+                return
+
             self.master.after(0, lambda: self.ui_update(transcription))
+
+        except Exception as e:
+            logging.error(f"文字起こし処理中にエラーが発生: {str(e)}")
+            self.master.after(0, lambda: self._handle_error(str(e)))
 
         finally:
             if temp_audio_file and os.path.exists(temp_audio_file):
                 try:
                     os.unlink(temp_audio_file)
                 except OSError as e:
-                    logging.error(f"一時ファイルの削除中にエラーが発生しました: {str(e)}", exc_info=True)
+                    logging.error(f"一時ファイルの削除中にエラーが発生: {str(e)}")
 
     def ui_update(self, text: str):
         paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
@@ -169,36 +183,30 @@ class RecordingController:
         copy_and_paste_transcription(text, self.replacements, self.config)
 
     def cleanup(self):
-        """
-        アプリケーション終了時のクリーンアップ処理
-        """
         try:
-            self._wait_for_processing()
+            if self.recorder.is_recording:
+                self.stop_recording()
+
+            if self.processing_thread and self.processing_thread.is_alive():
+                for _ in range(50):
+                    if not self.processing_thread.is_alive():
+                        break
+                    time.sleep(0.1)
+
+                if self.processing_thread.is_alive():
+                    logging.warning("処理スレッドが強制終了されました")
+                    self.cancel_processing = True
+                    self.processing_thread.join(1.0)
 
             if self.recording_timer and self.recording_timer.is_alive():
-                logging.info("録音タイマーをキャンセルします")
                 self.recording_timer.cancel()
 
             if self.five_second_timer:
-                logging.info("5秒前通知タイマーをキャンセルします")
                 self.master.after_cancel(self.five_second_timer)
-                self.five_second_timer = None
-
-            if self.paste_timer:
-                logging.info("ペーストタイマーをキャンセルします")
-                self.paste_timer.cancel()
-
-            if self.processing_thread and self.processing_thread.is_alive():
-                logging.info("処理スレッドの終了を待機中...")
-                self.processing_thread.join(timeout=5.0)
-                if self.processing_thread.is_alive():
-                    logging.warning("処理スレッドがタイムアウトしました")
-                self.processing_thread = None
-                logging.info("処理スレッドのクリーンアップ完了")
 
         except Exception as e:
-            logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}", exc_info=True)
-            raise
+            logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}")
+
 
     def _wait_for_processing(self):
         if self.processing_thread and self.processing_thread.is_alive():
