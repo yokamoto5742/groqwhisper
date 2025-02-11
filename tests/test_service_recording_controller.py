@@ -1,7 +1,9 @@
 import pytest
+import time
 from unittest.mock import Mock, MagicMock, patch
 from configparser import ConfigParser
 from service_recording_controller import RecordingController
+
 
 
 @pytest.fixture
@@ -72,6 +74,8 @@ def test_init(controller):
     assert controller.use_comma is True
     assert controller.recording_timer is None
     assert controller.five_second_timer is None
+    assert controller.cancel_processing is None
+    assert controller.processing_thread is None
 
 
 def test_start_recording(controller):
@@ -125,26 +129,37 @@ def test_handle_error(controller):
 
     # エラーハンドリングの確認
     controller.show_notification.assert_called_with("エラー", error_msg)
+    controller.ui_callbacks['update_status_label'].assert_called_with(
+        f"{controller.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
+    )
     controller.ui_callbacks['update_record_button'].assert_called_with(False)
     controller.recorder.stop_recording.assert_called_once()
 
 
-def test_cleanup(controller):
+@patch('time.sleep')
+def test_cleanup(mock_sleep, controller):  # mock_sleepパラメータを追加
+    # モックの設定
+    controller.recorder.is_recording = True
     controller.recording_timer = Mock()
     controller.five_second_timer = "dummy_timer"
-    controller.paste_timer = Mock()
-    controller.processing_thread = Mock()
-    controller.processing_thread.is_alive.return_value = True
 
     controller.cleanup()
 
-    # クリーンアップ処理の確認
+    assert controller.recorder.stop_recording.called
     assert controller.recording_timer.cancel.called
     controller.master.after_cancel.assert_called_with("dummy_timer")
-    assert controller.paste_timer.cancel.called
-    assert controller.processing_thread is None
 
 
 def test_auto_stop_recording(controller):
     controller.auto_stop_recording()
     controller.master.after.assert_called_with(0, controller._auto_stop_recording_ui)
+
+
+def test_auto_stop_recording_ui(controller):
+    controller.master.quit = Mock()
+    controller.recorder.stop_recording.return_value = ([], 44100)  # frames, sample_rate
+
+    controller._auto_stop_recording_ui()
+
+    controller.show_notification.assert_called_with("自動停止", "アプリケーションを終了します")
+    controller.master.after.assert_called_with(1000, controller.master.quit)

@@ -85,20 +85,23 @@ class TestAudioRecorder:
         assert len(recorder.frames) == 1
         assert recorder.frames[0] == b'dummy_audio_data'
 
-    @patch('tempfile.NamedTemporaryFile')
+    @patch('pyaudio.PyAudio')
     @patch('wave.open')
-    def test_save_audio(self, mock_wave_open, mock_temp_file, config):
+    @patch('tempfile.NamedTemporaryFile')
+    def test_save_audio(self, mock_temp_file, mock_wave_open, mock_pyaudio, config):
         frames = [b'dummy_audio_data']
         sample_rate = 44100
 
-        mock_temp_file.return_value.__enter__.return_value.name = 'test.wav'
-        mock_wave = Mock()
-        mock_wave_open.return_value = mock_wave
+        mock_temp_file.return_value.name = 'test.wav'
+        mock_wave_context = Mock()
+        mock_wave_open.return_value.__enter__.return_value = mock_wave_context
+        mock_pyaudio.return_value.get_sample_size.return_value = 2
 
         result = save_audio(frames, sample_rate, config)
 
         assert result == 'test.wav'
-        mock_wave.setnchannels.assert_called_once_with(2)
-        mock_wave.setframerate.assert_called_once_with(sample_rate)
-        mock_wave.writeframes.assert_called_once_with(b'dummy_audio_data')
-        mock_wave.close.assert_called_once()
+        mock_wave_context.setnchannels.assert_called_once_with(2)
+        mock_wave_context.setsampwidth.assert_called_once_with(2)
+        mock_wave_context.setframerate.assert_called_once_with(sample_rate)
+        mock_wave_context.writeframes.assert_called_once_with(b'dummy_audio_data')
+        mock_wave_open.assert_called_once_with('test.wav', 'wb')
