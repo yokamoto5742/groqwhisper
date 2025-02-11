@@ -63,6 +63,13 @@ def mock_scrollbar():
     return scrollbar
 
 
+@pytest.fixture(autouse=True)  # 追加：自動実行フィクスチャ
+def cleanup_tk():
+    yield
+    while tk._default_root:  # 追加
+        tk._default_root.destroy()
+
+
 @pytest.fixture
 def editor(mock_config, mock_tk, mock_toplevel, mock_text, mock_scrollbar):
     with patch('tkinter.ttk.Frame'), \
@@ -71,9 +78,9 @@ def editor(mock_config, mock_tk, mock_toplevel, mock_text, mock_scrollbar):
             patch('tkinter.Text', return_value=mock_text), \
             patch('tkinter.ttk.Scrollbar', return_value=mock_scrollbar):
         editor = ReplacementsEditor(mock_tk, mock_config)
-        # スクロールバーの設定を手動で適用
         editor.text_area._values['yscrollcommand'] = mock_scrollbar.set
-        return editor
+        yield editor
+        editor.window.destroy() # テスト終了時にウィンドウを破棄
 
 
 def test_init_with_invalid_config():
@@ -102,7 +109,9 @@ def test_load_file_not_existing(editor, tmp_path):
     editor.config['PATHS']['replacements_file'] = str(non_existent_file)
 
     with patch('tkinter.messagebox.showwarning') as mock_warning, \
-            patch('os.path.exists', return_value=False):
+            patch('os.path.exists', return_value=False), \
+            patch('builtins.open', create=True) as mock_open:
+        mock_open.side_effect = FileNotFoundError()
         editor.load_file()
         mock_warning.assert_called_once()
         assert '新規作成します' in mock_warning.call_args[0][1]
