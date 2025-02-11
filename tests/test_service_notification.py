@@ -47,7 +47,7 @@ def test_show_timed_message(notification_manager):
 def test_show_error_message(notification_manager):
     with patch.object(notification_manager, 'show_timed_message') as mock_show:
         notification_manager.show_error_message("エラータイトル", "エラーメッセージ")
-        mock_show.assert_called_with("エラー: エラータイトル", "エラーメッセージ", 2000)
+        mock_show.assert_called_with("エラー: エラータイトル", "エラーメッセージ", 3000)
 
 
 def test_show_status_message(notification_manager, mock_tk):
@@ -83,3 +83,14 @@ def test_update_status_label_no_label(notification_manager, mock_tk):
 
     # エラーが発生しないことを確認
     notification_manager._update_status_label("テストメッセージ")
+
+
+def test_cleanup(notification_manager):
+    # current_popupのモック作成
+    mock_popup = MagicMock()
+    notification_manager.current_popup = mock_popup
+
+    notification_manager.cleanup()
+
+    # destroyメソッドが呼ばれたことを確認
+    mock_popup.destroy.assert_called_once()
