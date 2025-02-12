@@ -2,6 +2,9 @@ import pyaudio
 import wave
 import tempfile
 import logging
+import os
+import glob
+from datetime import datetime, timedelta
 from typing import List, Tuple, Optional
 
 
@@ -10,10 +13,13 @@ class AudioRecorder:
         self.sample_rate = int(config['AUDIO']['SAMPLE_RATE'])
         self.channels = int(config['AUDIO']['CHANNELS'])
         self.chunk = int(config['AUDIO']['CHUNK'])
+        self.temp_dir = config['PATHS']['TEMP_DIR']
         self.frames: List[bytes] = []
         self.is_recording = False
         self.p: Optional[pyaudio.PyAudio] = None
         self.stream: Optional[pyaudio.Stream] = None
+
+        os.makedirs(self.temp_dir, exist_ok=True)
 
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
@@ -61,18 +67,25 @@ class AudioRecorder:
 
 def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[str]:
     try:
-        logging.info(f"音声ファイル保存開始")
-        temp_audio = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        temp_dir = config['PATHS']['TEMP_DIR']
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
 
-        with wave.open(temp_audio.name, "wb") as wf:
+        logging.info(f"音声ファイル保存開始")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        temp_filename = f"audio_{timestamp}.wav"
+        temp_path = os.path.join(temp_dir, temp_filename)
+
+        with wave.open(temp_path, "wb") as wf:
             channels = int(config['AUDIO']['CHANNELS'])
             wf.setnchannels(channels)
             wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
             wf.setframerate(sample_rate)
             wf.writeframes(b"".join(frames))
 
-        logging.info(f"音声ファイル保存完了: {temp_audio.name}")
-        return temp_audio.name
+        logging.info(f"音声ファイル保存完了: {temp_path}")
+        return temp_path
 
     except Exception as e:
         logging.error(f"音声ファイル保存エラー: {str(e)}")

@@ -18,7 +18,7 @@ from version import VERSION
 def cleanup_resources():
     """アプリケーション終了時のリソースクリーンアップ"""
     try:
-        logging.info("アプリケーションのクリーンアップを開始します")
+        logging.info("アプリケーションをクリーンアップしました")
         logging.shutdown()
     except Exception as e:
         print(f"クリーンアップ中にエラーが発生: {str(e)}", file=sys.stderr)

@@ -4,6 +4,8 @@ import threading
 import tkinter as tk
 from typing import Optional, Dict, Any, Callable, List, Tuple
 from functools import wraps
+from datetime import datetime, timedelta
+import glob
 
 from service_audio_recorder import save_audio
 from service_transcription import transcribe_audio
@@ -38,6 +40,26 @@ class RecordingController:
 
         self.use_punctuation: bool = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
         self.use_comma: bool = self.use_punctuation
+
+        self.temp_dir = config['PATHS']['TEMP_DIR']
+        self.cleanup_hours = int(config['PATHS']['CLEANUP_HOURS'])
+        os.makedirs(self.temp_dir, exist_ok=True)
+
+    def _cleanup_temp_files(self):
+        try:
+            current_time = datetime.now()
+            pattern = os.path.join(self.temp_dir, "*.wav")
+
+            for file_path in glob.glob(pattern):
+                file_modified = datetime.fromtimestamp(os.path.getmtime(file_path))
+                if current_time - file_modified > timedelta(hours=self.cleanup_hours):
+                    try:
+                        os.remove(file_path)
+                        logging.info(f"古い一時ファイルを削除しました: {file_path}")
+                    except Exception as e:
+                        logging.error(f"ファイル削除中にエラーが発生しました: {file_path}, {e}")
+        except Exception as e:
+            logging.error(f"クリーンアップ処理中にエラーが発生しました: {e}")
 
     def _handle_error(self, error_msg: str):
         self.show_notification("エラー", error_msg)
@@ -188,7 +210,7 @@ class RecordingController:
                 self.stop_recording()
 
             if self.processing_thread and self.processing_thread.is_alive():
-                for _ in range(100): # 10秒間待機
+                for _ in range(100):  # 10秒間待機
                     if not self.processing_thread.is_alive():
                         break
                     time.sleep(0.1)
@@ -204,9 +226,10 @@ class RecordingController:
             if self.five_second_timer:
                 self.master.after_cancel(self.five_second_timer)
 
+            self._cleanup_temp_files()
+
         except Exception as e:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}")
-
 
     def _wait_for_processing(self):
         if self.processing_thread and self.processing_thread.is_alive():
