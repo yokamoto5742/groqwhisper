@@ -188,7 +188,7 @@ class RecordingController:
                 self.stop_recording()
 
             if self.processing_thread and self.processing_thread.is_alive():
-                for _ in range(50):
+                for _ in range(100): # 10秒間待機
                     if not self.processing_thread.is_alive():
                         break
                     time.sleep(0.1)
