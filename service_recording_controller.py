@@ -160,7 +160,6 @@ class RecordingController:
             self.five_second_notification_shown = True
 
     def transcribe_audio_frames(self, frames: List[bytes], sample_rate: int):
-        temp_audio_file = None
         try:
             temp_audio_file = save_audio(frames, sample_rate, self.config)
             if not temp_audio_file:
@@ -189,13 +188,6 @@ class RecordingController:
         except Exception as e:
             logging.error(f"文字起こし処理中にエラーが発生: {str(e)}")
             self.master.after(0, lambda: self._handle_error(str(e)))
-
-        finally:
-            if temp_audio_file and os.path.exists(temp_audio_file):
-                try:
-                    os.unlink(temp_audio_file)
-                except OSError as e:
-                    logging.error(f"一時ファイルの削除中にエラーが発生: {str(e)}")
 
     def ui_update(self, text: str):
         paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
