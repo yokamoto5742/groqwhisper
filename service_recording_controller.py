@@ -42,7 +42,7 @@ class RecordingController:
         self.use_comma: bool = self.use_punctuation
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
-        self.cleanup_hours = int(config['PATHS']['CLEANUP_HOURS'])
+        self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
         os.makedirs(self.temp_dir, exist_ok=True)
 
     def _cleanup_temp_files(self):
@@ -52,7 +52,7 @@ class RecordingController:
 
             for file_path in glob.glob(pattern):
                 file_modified = datetime.fromtimestamp(os.path.getmtime(file_path))
-                if current_time - file_modified > timedelta(hours=self.cleanup_hours):
+                if current_time - file_modified > timedelta(minutes=self.cleanup_minutes):
                     try:
                         os.remove(file_path)
                         logging.info(f"古い一時ファイルを削除しました: {file_path}")
