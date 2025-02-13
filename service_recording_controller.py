@@ -159,6 +159,32 @@ class RecordingController:
             self.show_notification("自動停止", "あと5秒で音声入力を停止します")
             self.five_second_notification_shown = True
 
+    def handle_audio_file(self, event):
+        file_path = self.master.clipboard_get()
+        if not os.path.exists(file_path):
+            self.show_notification('エラー', '音声ファイルが見つかりません')
+            return
+
+        self.ui_callbacks['update_status_label']('音声ファイル処理中...')
+        try:
+            transcription = transcribe_audio(
+                file_path,
+                self.use_punctuation,
+                self.use_comma,
+                self.config,
+                self.client
+            )
+            if transcription:
+                self.ui_update(transcription)
+            else:
+                raise ValueError('音声ファイルの処理に失敗しました')
+        except Exception as e:
+            self.show_notification('エラー', str(e))
+        finally:
+            self.ui_callbacks['update_status_label'](
+                f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
+            )
+
     def transcribe_audio_frames(self, frames: List[bytes], sample_rate: int):
         try:
             temp_audio_file = save_audio(frames, sample_rate, self.config)

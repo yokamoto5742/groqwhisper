@@ -56,7 +56,7 @@ class VoiceInputManager:
         )
 
         self.client = client
-        self.master.bind('<<LoadAudioFile>>', self._handle_audio_file)
+        self.master.bind('<<LoadAudioFile>>', self.recording_controller.handle_audio_file)
 
         start_minimized = self.config['OPTIONS'].getboolean('START_MINIMIZED', True)
         if start_minimized:
@@ -79,32 +79,6 @@ class VoiceInputManager:
         self.config['WHISPER']['USE_PUNCTUATION'] = str(use_punctuation)
         self.config['WHISPER']['USE_COMMA'] = str(use_punctuation)
         save_config(self.config)
-
-    def _handle_audio_file(self, event):
-        file_path = self.master.clipboard_get()
-        if not os.path.exists(file_path):
-            self.notification_manager.show_error_message('エラー', '音声ファイルが見つかりません')
-            return
-
-        self.ui_components.update_status_label('音声ファイル処理中...')
-        try:
-            transcription = transcribe_audio(
-                file_path,
-                self.recording_controller.use_punctuation,
-                self.recording_controller.use_comma,
-                self.config,
-                self.client
-            )
-            if transcription:
-                self.recording_controller.ui_update(transcription)
-            else:
-                raise ValueError('音声ファイルの処理に失敗しました')
-        except Exception as e:
-            self.notification_manager.show_error_message('エラー', str(e))
-        finally:
-            self.ui_components.update_status_label(
-                f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
-            )
 
     def close_application(self):
         self.recording_controller.cleanup()
