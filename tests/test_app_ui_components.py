@@ -42,7 +42,7 @@ def test_setup_ui(ui_components):
 
     # ボタンのテキスト確認
     assert ui_components.record_button.cget("text") == "音声入力開始"
-    assert ui_components.punctuation_button.cget("text") == f"句読点切替え:{CONFIG['KEYS']['TOGGLE_PUNCTUATION']}"
+    assert ui_components.punctuation_button.cget("text") == f"句読点切替:{CONFIG['KEYS']['TOGGLE_PUNCTUATION']}"
     assert ui_components.close_button.cget("text") == f"閉じる:{CONFIG['KEYS']['EXIT_APP']}"
 
     # ラベルのテキスト確認
