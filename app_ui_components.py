@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog
 import pyautogui
 from typing import Optional, Dict, Any, Callable
 
@@ -20,6 +21,7 @@ class UIComponents:
         self.punctuation_status_label: Optional[tk.Label] = None
         self.punctuation_button: Optional[tk.Button] = None
         self.record_button: Optional[tk.Button] = None
+        self.load_audio_button: Optional[tk.Button] = None
         self.history_button: Optional[tk.Button] = None
         self.replace_button: Optional[tk.Button] = None
         self.close_button: Optional[tk.Button] = None
@@ -55,6 +57,15 @@ class UIComponents:
             text='現在句読点あり'
         )
         self.punctuation_status_label.pack(pady=5)
+
+        # 音声ファイル読込ボタン
+        self.load_audio_button = tk.Button(
+            self.master,
+            text='音声ファイル読込',
+            command=self.open_audio_file,
+            width=20
+        )
+        self.load_audio_button.pack(pady=5)
 
         # クリップボード履歴ボタン
         self.history_button = tk.Button(
@@ -102,6 +113,17 @@ class UIComponents:
         self.punctuation_status_label.config(
             text=f'現在句読点{"あり" if use_punctuation else "なし"}'
         )
+
+    def open_audio_file(self):
+        file_path = filedialog.askopenfilename(
+            title='音声ファイルを選択',
+            filetypes=[('Wave files', '*.wav')],
+            initialdir=self.config['PATHS']['TEMP_DIR']
+        )
+        if file_path:
+            self.master.clipboard_clear()
+            self.master.clipboard_append(file_path)
+            self.master.event_generate('<<LoadAudioFile>>')
 
     @staticmethod
     def open_clipboard_history():
