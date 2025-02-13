@@ -7,3 +7,4 @@ logs/
 *.iml
 
 misc.xml
+error_log.txt

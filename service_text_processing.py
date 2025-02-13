@@ -66,7 +66,6 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
     try:
         result = text
         logging.info(f"テキスト置換開始 - 文字数: {len(text)}")
-        logging.info(f"置換ルール数: {len(replacements)}")
 
         for old, new in replacements.items():
             if old in result:
@@ -105,7 +104,6 @@ def copy_and_paste_transcription(
         def paste_text():
             try:
                 pyautogui.hotkey('ctrl', 'v')
-                logging.info("貼り付け完了")
             except Exception as e:
                 logging.error(f"貼り付け処理でエラー: {str(e)}", exc_info=True)
 

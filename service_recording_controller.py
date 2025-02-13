@@ -99,8 +99,6 @@ class RecordingController:
             self.show_five_second_notification
         )
 
-        logging.info("録音を開始しました")
-
     def _safe_record(self):
         self.recorder.record()
 
@@ -138,7 +136,6 @@ class RecordingController:
         )
         self.processing_thread.start()
         self.master.after(100, self._check_process_thread, self.processing_thread)
-        logging.info("音声処理スレッドが開始されました")
 
     def _check_process_thread(self, thread: threading.Thread):
         if not thread.is_alive():
