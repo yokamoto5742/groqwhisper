@@ -4,7 +4,6 @@ import tkinter as tk
 from tkinter import messagebox
 import traceback
 import logging
-import atexit
 
 from config_manager import load_config
 from service_audio_recorder import AudioRecorder
@@ -15,28 +14,15 @@ from service_transcription import setup_groq_client
 from version import VERSION
 
 
-def cleanup_resources():
-    """アプリケーション終了時のリソースクリーンアップ"""
-    try:
-        logging.info("アプリケーションをクリーンアップしました")
-        logging.shutdown()
-    except Exception as e:
-        print(f"クリーンアップ中にエラーが発生: {str(e)}", file=sys.stderr)
-
-
 def main():
     try:
         config = load_config()
         setup_logging(config)
         logging.info("アプリケーションを開始します")
 
-        # 各サービスの初期化
         recorder = AudioRecorder(config)
         client = setup_groq_client()
         replacements = load_replacements()
-
-        # 終了時のクリーンアップ処理を登録
-        atexit.register(cleanup_resources)
 
         root = tk.Tk()
         app = VoiceInputManager(root, config, recorder, client, replacements, VERSION)
