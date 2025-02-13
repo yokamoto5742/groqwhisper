@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import filedialog
 import pyautogui
+from tkinter import filedialog
 from typing import Optional, Dict, Any, Callable
 
 from service_text_editor import ReplacementsEditor
@@ -30,28 +30,25 @@ class UIComponents:
         self.master.title(f'音声入力メモ v{version}')
 
         window_width = int(self.config['WINDOW'].get('width', 350))
-        window_height = int(self.config['WINDOW'].get('height', 350))
+        window_height = int(self.config['WINDOW'].get('height', 400))
         self.master.geometry(f"{window_width}x{window_height}")
 
-        # 録音ボタン
         self.record_button = tk.Button(
             self.master,
             text=f'音声入力開始',
             command=self._toggle_recording,
-            width=20
+            width=15
         )
         self.record_button.pack(pady=10)
 
-        # 句読点ボタン
         self.punctuation_button = tk.Button(
             self.master,
             text=f'句読点切替:{self.config["KEYS"]["TOGGLE_PUNCTUATION"]}',
             command=self._toggle_punctuation,
-            width=20
+            width=15
         )
         self.punctuation_button.pack(pady=5)
 
-        # 句読点状態ラベル
         self.punctuation_status_label = tk.Label(
             self.master,
             text='現在句読点あり',
@@ -59,43 +56,38 @@ class UIComponents:
         )
         self.punctuation_status_label.pack(pady=5)
 
-        # 音声ファイル読込ボタン
         self.load_audio_button = tk.Button(
             self.master,
             text='音声ファイル読込',
             command=self.open_audio_file,
-            width=20
+            width=15
         )
         self.load_audio_button.pack(pady=5)
 
-        # クリップボード履歴ボタン
         self.history_button = tk.Button(
             self.master,
             text='クリップボード履歴',
             command=self.open_clipboard_history,
-            width=20
+            width=15
         )
         self.history_button.pack(pady=5)
 
-        # テキスト置換登録ボタン
         self.replace_button = tk.Button(
             self.master,
             text='テキスト置換登録',
             command=self.open_replacements_editor,
-            width=20
+            width=15
         )
         self.replace_button.pack(pady=5)
 
-        # 終了ボタン
         self.close_button = tk.Button(
             self.master,
             text=f'閉じる:{self.config["KEYS"]["EXIT_APP"]}',
             command=self.master.quit,
-            width=20
+            width=15
         )
         self.close_button.pack(pady=5)
 
-        # 一般情報ステータスラベル
         self.status_label = tk.Label(
             self.master,
             text=f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
@@ -107,13 +99,13 @@ class UIComponents:
             text=f'音声入力{"停止" if is_recording else "開始"}:{self.config["KEYS"]["TOGGLE_RECORDING"]}'
         )
 
-    def update_status_label(self, text: str):
-        self.status_label.config(text=text)
-
     def update_punctuation_button(self, use_punctuation: bool):
         self.punctuation_status_label.config(
             text=f'現在句読点{"あり" if use_punctuation else "なし"}'
         )
+
+    def update_status_label(self, text: str):
+        self.status_label.config(text=text)
 
     def open_audio_file(self):
         file_path = filedialog.askopenfilename(
