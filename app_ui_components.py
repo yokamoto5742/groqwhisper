@@ -45,7 +45,7 @@ class UIComponents:
         # 句読点ボタン
         self.punctuation_button = tk.Button(
             self.master,
-            text=f'句読点切替え:{self.config["KEYS"]["TOGGLE_PUNCTUATION"]}',
+            text=f'句読点切替:{self.config["KEYS"]["TOGGLE_PUNCTUATION"]}',
             command=self._toggle_punctuation,
             width=20
         )
@@ -54,7 +54,8 @@ class UIComponents:
         # 句読点状態ラベル
         self.punctuation_status_label = tk.Label(
             self.master,
-            text='現在句読点あり'
+            text='現在句読点あり',
+            font=('Meiryo UI', 10, 'bold')
         )
         self.punctuation_status_label.pack(pady=5)
 
