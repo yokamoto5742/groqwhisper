@@ -11,6 +11,7 @@ def load_config() -> configparser.ConfigParser:
     config.read(config_path)
     return config
 
+
 def setup_logging(config: configparser.ConfigParser):
     log_directory = os.path.join(os.path.dirname(__file__), config.get('LOGGING', 'log_directory', fallback='logs'))
     log_retention_days = config.getint('LOGGING', 'log_retention_days', fallback=7)

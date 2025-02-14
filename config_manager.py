@@ -16,15 +16,14 @@ def get_config_path():
 
 CONFIG_PATH = get_config_path()
 
+
 def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: Any) -> Any:
-    """
-    設定値を安全に取得する関数
-    """
     try:
         value = config[section][key]
         return type(default)(value)
     except (KeyError, ValueError, TypeError):
         return default
+
 
 def load_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
@@ -41,6 +40,7 @@ def load_config() -> configparser.ConfigParser:
         print(f"設定ファイルの解析中にエラーが発生しました: {e}")
         raise
     return config
+
 
 def save_config(config: configparser.ConfigParser):
     try:
