@@ -51,8 +51,7 @@ class UIComponents:
 
         self.punctuation_status_label = tk.Label(
             self.master,
-            text='現在句読点あり',
-            font=('Meiryo UI', 10, 'bold')
+            text='【現在句読点あり】',
         )
         self.punctuation_status_label.pack(pady=5)
 
@@ -101,7 +100,7 @@ class UIComponents:
 
     def update_punctuation_button(self, use_punctuation: bool):
         self.punctuation_status_label.config(
-            text=f'現在句読点{"あり" if use_punctuation else "なし"}'
+            text=f'【現在句読点{"あり】" if use_punctuation else "なし】"}'
         )
 
     def update_status_label(self, text: str):
