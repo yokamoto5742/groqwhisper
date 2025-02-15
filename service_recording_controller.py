@@ -44,6 +44,7 @@ class RecordingController:
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
         os.makedirs(self.temp_dir, exist_ok=True)
+        self._cleanup_temp_files()
 
     def _cleanup_temp_files(self):
         try:
