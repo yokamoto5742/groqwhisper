@@ -1,6 +1,9 @@
 import tkinter as tk
 import pyautogui
-from tkinter import filedialog
+import glob
+import os
+import logging
+from tkinter import filedialog, messagebox
 from typing import Optional, Dict, Any, Callable
 
 from service_text_editor import ReplacementsEditor
@@ -15,12 +18,14 @@ class UIComponents:
     ):
         self.master = master
         self.config = config
-        self._toggle_recording = callbacks['toggle_recording']
-        self._toggle_punctuation = callbacks['toggle_punctuation']
+        self.callbacks = callbacks
+        self._toggle_recording = callbacks.get('toggle_recording', lambda: None)
+        self._toggle_punctuation = callbacks.get('toggle_punctuation', lambda: None)
         self.status_label: Optional[tk.Label] = None
         self.punctuation_status_label: Optional[tk.Label] = None
         self.punctuation_button: Optional[tk.Button] = None
         self.record_button: Optional[tk.Button] = None
+        self.reload_audio_button: Optional[tk.Button] = None
         self.load_audio_button: Optional[tk.Button] = None
         self.history_button: Optional[tk.Button] = None
         self.replace_button: Optional[tk.Button] = None
@@ -55,9 +60,17 @@ class UIComponents:
         )
         self.punctuation_status_label.pack(pady=5)
 
+        self.reload_audio_button = tk.Button(
+            self.master,
+            text=f'音声再読込:{self.config["KEYS"]["RELOAD_AUDIO"]}',
+            command=self.reload_latest_audio,
+            width=15
+        )
+        self.reload_audio_button.pack(pady=5)
+
         self.load_audio_button = tk.Button(
             self.master,
-            text='音声ファイル読込',
+            text='音声ファイル選択',
             command=self.open_audio_file,
             width=15
         )
@@ -93,6 +106,11 @@ class UIComponents:
         )
         self.status_label.pack(pady=10)
 
+    def update_callbacks(self, callbacks: Dict[str, Callable]):
+        self.callbacks = callbacks
+        self._toggle_recording = callbacks.get('toggle_recording', self._toggle_recording)
+        self._toggle_punctuation = callbacks.get('toggle_punctuation', self._toggle_punctuation)
+
     def update_record_button(self, is_recording: bool):
         self.record_button.config(
             text=f'音声入力{"停止" if is_recording else "開始"}:{self.config["KEYS"]["TOGGLE_RECORDING"]}'
@@ -105,6 +123,25 @@ class UIComponents:
 
     def update_status_label(self, text: str):
         self.status_label.config(text=text)
+
+    def reload_latest_audio(self):
+        latest_file = self.get_latest_audio_file()
+        if latest_file:
+            self.master.clipboard_clear()
+            self.master.clipboard_append(latest_file)
+            self.master.event_generate('<<LoadAudioFile>>')
+        else:
+            messagebox.showwarning("警告", "音声ファイルが見つかりません")
+
+    def get_latest_audio_file(self):
+        try:
+            files = glob.glob(os.path.join(self.config['PATHS']['TEMP_DIR'], "*.wav"))
+            if not files:
+                return None
+            return max(files, key=os.path.getmtime)
+        except Exception as e:
+            logging.error(f"最新の音声ファイル取得中にエラー: {str(e)}")
+            return None
 
     def open_audio_file(self):
         file_path = filedialog.askopenfilename(

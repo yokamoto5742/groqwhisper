@@ -11,13 +11,14 @@ class KeyboardHandler:
             config: Dict[str, Any],
             toggle_recording_callback: Callable,
             toggle_punctuation_callback: Callable,
+            reload_audio_callback: Callable,
             close_application_callback: Callable,
     ):
-
         self.master = master
         self.config = config
         self._toggle_recording = toggle_recording_callback
         self._toggle_punctuation = toggle_punctuation_callback
+        self._reload_audio = reload_audio_callback
         self._close_application = close_application_callback
         self.setup_keyboard_listeners()
 
@@ -39,6 +40,11 @@ class KeyboardHandler:
                 self._handle_toggle_punctuation_key
             )
 
+            keyboard.on_press_key(
+                self.config['KEYS']['RELOAD_AUDIO'],
+                self._register_hotkeys
+            )
+
         except Exception as e:
             logging.error(f"キーボードリスナーの設定中にエラーが発生しました: {str(e)}")
             raise
@@ -54,6 +60,13 @@ class KeyboardHandler:
 
     def _handle_toggle_comma_key(self, _: keyboard.KeyboardEvent):
         self.master.after(0, self._toggle_comma)
+
+    def _register_hotkeys(self):
+        keyboard.add_hotkey(
+            self.config['KEYS']['RELOAD_AUDIO'],
+            self._reload_audio,
+            suppress=True
+        )
 
     @staticmethod
     def cleanup():

@@ -26,12 +26,15 @@ class VoiceInputManager:
         self.version = version
         self.notification_manager = NotificationManager(master, config)
 
+        self.ui_components = UIComponents(master, config, {})
+
         callbacks = {
             'toggle_recording': self.toggle_recording,
             'toggle_punctuation': self.toggle_punctuation,
+            'reload_audio': self.ui_components.reload_latest_audio,
         }
 
-        self.ui_components = UIComponents(master, config, callbacks)
+        self.ui_components.update_callbacks(callbacks)
         self.ui_components.setup_ui(version)
 
         self.recording_controller = RecordingController(
@@ -52,6 +55,7 @@ class VoiceInputManager:
             config,
             self.toggle_recording,
             self.toggle_punctuation,
+            self.ui_components.reload_latest_audio,
             self.close_application,
         )
 
