@@ -23,7 +23,6 @@ class KeyboardHandler:
         self.setup_keyboard_listeners()
 
     def setup_keyboard_listeners(self):
-
         try:
             keyboard.on_press_key(
                 self.config['KEYS']['TOGGLE_RECORDING'],
@@ -42,7 +41,7 @@ class KeyboardHandler:
 
             keyboard.on_press_key(
                 self.config['KEYS']['RELOAD_AUDIO'],
-                self._register_hotkeys
+                self._handle_reload_audio_key
             )
 
         except Exception as e:
@@ -58,15 +57,8 @@ class KeyboardHandler:
     def _handle_toggle_punctuation_key(self, _: keyboard.KeyboardEvent):
         self.master.after(0, self._toggle_punctuation)
 
-    def _handle_toggle_comma_key(self, _: keyboard.KeyboardEvent):
-        self.master.after(0, self._toggle_comma)
-
-    def _register_hotkeys(self):
-        keyboard.add_hotkey(
-            self.config['KEYS']['RELOAD_AUDIO'],
-            self._reload_audio,
-            suppress=True
-        )
+    def _handle_reload_audio_key(self, _: keyboard.KeyboardEvent):
+        self.master.after(0, self._reload_audio)
 
     @staticmethod
     def cleanup():
