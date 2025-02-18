@@ -17,7 +17,8 @@ def mock_config():
         'KEYS': {
             'TOGGLE_RECORDING': 'f2',
             'EXIT_APP': 'f4',
-            'TOGGLE_PUNCTUATION': 'f3'
+            'TOGGLE_PUNCTUATION': 'f3',
+            'RELOAD_AUDIO': 'f5'  # 新しいキー設定を追加
         }
     }
 
@@ -27,6 +28,7 @@ def mock_callbacks():
     return {
         'toggle_recording': Mock(),
         'toggle_punctuation': Mock(),
+        'reload_audio': Mock(),  # 新しいコールバックを追加
         'close_application': Mock()
     }
 
@@ -39,6 +41,7 @@ def keyboard_handler(mock_tk, mock_config, mock_callbacks):
             mock_config,
             mock_callbacks['toggle_recording'],
             mock_callbacks['toggle_punctuation'],
+            mock_callbacks['reload_audio'],  # 新しいコールバックを追加
             mock_callbacks['close_application']
         )
         return handler
@@ -51,13 +54,15 @@ def test_init_registers_keyboard_listeners(mock_tk, mock_config, mock_callbacks)
             mock_config,
             mock_callbacks['toggle_recording'],
             mock_callbacks['toggle_punctuation'],
+            mock_callbacks['reload_audio'],  # 新しいコールバックを追加
             mock_callbacks['close_application']
         )
 
-        assert mock_on_press_key.call_count == 3
+        assert mock_on_press_key.call_count == 4  # コール回数を4に更新
         assert mock_on_press_key.call_args_list[0][0][0] == mock_config['KEYS']['TOGGLE_RECORDING']
         assert mock_on_press_key.call_args_list[1][0][0] == mock_config['KEYS']['EXIT_APP']
         assert mock_on_press_key.call_args_list[2][0][0] == mock_config['KEYS']['TOGGLE_PUNCTUATION']
+        assert mock_on_press_key.call_args_list[3][0][0] == mock_config['KEYS']['RELOAD_AUDIO']  # 新しいアサーションを追加
 
 
 def test_handle_toggle_recording_key(keyboard_handler, mock_tk):
@@ -76,6 +81,12 @@ def test_handle_toggle_punctuation_key(keyboard_handler, mock_tk):
     mock_event = Mock()
     keyboard_handler._handle_toggle_punctuation_key(mock_event)
     mock_tk.after.assert_called_once_with(0, keyboard_handler._toggle_punctuation)
+
+
+def test_handle_reload_audio_key(keyboard_handler, mock_tk):  # 新しいテストケースを追加
+    mock_event = Mock()
+    keyboard_handler._handle_reload_audio_key(mock_event)
+    mock_tk.after.assert_called_once_with(0, keyboard_handler._reload_audio)
 
 
 def test_cleanup(keyboard_handler):
@@ -100,6 +111,7 @@ def test_setup_keyboard_listeners_handles_exception(mock_tk, mock_config, mock_c
                     mock_config,
                     mock_callbacks['toggle_recording'],
                     mock_callbacks['toggle_punctuation'],
+                    mock_callbacks['reload_audio'],  # 新しいコールバックを追加
                     mock_callbacks['close_application']
                 )
                 mock_logging.assert_called_once()
