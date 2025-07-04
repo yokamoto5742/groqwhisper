@@ -1,7 +1,7 @@
 ============================================================
 プロジェクト構造: groqwhisper
 パス: C:\Users\yokam\PycharmProjects\groqwhisper
-生成日時: 2025-07-04 19:15:28
+生成日時: 2025-07-04 19:42:06
 ============================================================
 
 └── groqwhisper
@@ -13,7 +13,7 @@
     │   └── LICENSE
     ├── external_service
     │   ├── __init__.py
-    │   └── transcription.py
+    │   └── groq_api.py
     ├── logs
     ├── service
     │   ├── __init__.py
@@ -21,7 +21,7 @@
     │   ├── keyboard_handler.py
     │   ├── notification.py
     │   ├── recording_controller.py
-    │   ├── text_editor.py
+    │   ├── replacements_editor.py
     │   └── text_processing.py
     ├── tests
     │   ├── __init__.py
@@ -43,6 +43,7 @@
     ├── log_rotation.py
     ├── main.py
     ├── project_structure.py
+    ├── project_structure.txt
     ├── replacements.txt
     ├── version.py
     ├── version.txt

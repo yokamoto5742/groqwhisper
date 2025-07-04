@@ -5,8 +5,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from typing import Any, Callable, Dict, Optional
 
-import pyautogui
-
 from service.replacements_editor import ReplacementsEditor
 
 class UIComponents:
@@ -27,7 +25,6 @@ class UIComponents:
         self.record_button: Optional[tk.Button] = None
         self.reload_audio_button: Optional[tk.Button] = None
         self.load_audio_button: Optional[tk.Button] = None
-        self.history_button: Optional[tk.Button] = None
         self.replace_button: Optional[tk.Button] = None
         self.close_button: Optional[tk.Button] = None
 
@@ -75,14 +72,6 @@ class UIComponents:
             width=15
         )
         self.load_audio_button.pack(pady=5)
-
-        self.history_button = tk.Button(
-            self.master,
-            text='クリップボード履歴',
-            command=self.open_clipboard_history,
-            width=15
-        )
-        self.history_button.pack(pady=5)
 
         self.replace_button = tk.Button(
             self.master,
@@ -153,10 +142,6 @@ class UIComponents:
             self.master.clipboard_clear()
             self.master.clipboard_append(file_path)
             self.master.event_generate('<<LoadAudioFile>>')
-
-    @staticmethod
-    def open_clipboard_history():
-        pyautogui.hotkey('win', 'v')
 
     def open_replacements_editor(self):
         ReplacementsEditor(self.master, self.config)
