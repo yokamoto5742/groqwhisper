@@ -1,10 +1,11 @@
-import threading
 import logging
-import pyautogui
-import pyperclip
 import os
 import sys
+import threading
 from typing import Dict
+
+import pyautogui
+import pyperclip
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ def get_replacements_path():
         base_path = os.path.dirname(__file__)
         
     return os.path.join(base_path, 'replacements.txt')
+
 
 def load_replacements() -> Dict[str, str]:
     replacements = {}
@@ -54,6 +56,7 @@ def load_replacements() -> Dict[str, str]:
 
     return replacements
 
+
 def replace_text(text: str, replacements: Dict[str, str]) -> str:
     if not text:
         logging.error("入力テキストが空です")
@@ -81,6 +84,14 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
         logging.error(f"テキスト置換中にエラーが発生: {str(e)}", exc_info=True)
         return text
 
+
+def paste_text():
+    try:
+        pyautogui.hotkey('ctrl', 'v')
+    except Exception as e:
+        logging.error(f"貼り付け処理でエラー: {str(e)}", exc_info=True)
+
+
 def copy_and_paste_transcription(
         text: str,
         replacements: Dict[str, str],
@@ -100,12 +111,6 @@ def copy_and_paste_transcription(
         logging.info("クリップボードコピー完了")
 
         paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.1))
-
-        def paste_text():
-            try:
-                pyautogui.hotkey('ctrl', 'v')
-            except Exception as e:
-                logging.error(f"貼り付け処理でエラー: {str(e)}", exc_info=True)
 
         threading.Timer(paste_delay, paste_text).start()
 

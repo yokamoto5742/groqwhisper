@@ -1,7 +1,8 @@
-import os
 import logging
+import os
 import traceback
 from typing import Optional
+
 from groq import Groq
 
 
@@ -10,6 +11,7 @@ def setup_groq_client() -> Groq:
     if not api_key:
         raise ValueError("GROQ_API_KEYの環境変数が未設定です")
     return Groq(api_key=api_key)
+
 
 def transcribe_audio(
         audio_file_path: str,

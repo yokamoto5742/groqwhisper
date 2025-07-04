@@ -11,7 +11,7 @@ from app_window import VoiceInputManager
 from version import VERSION
 from service.audio_recorder import AudioRecorder
 from service.text_processing import load_replacements
-from external_service.transcription import setup_groq_client
+from external_service.groq_api import setup_groq_client
 
 
 def main():

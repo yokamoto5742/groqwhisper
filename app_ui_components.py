@@ -6,7 +6,7 @@ import logging
 from tkinter import filedialog, messagebox
 from typing import Optional, Dict, Any, Callable
 
-from service.text_editor import ReplacementsEditor
+from service.replacements_editor import ReplacementsEditor
 
 class UIComponents:
     def __init__(

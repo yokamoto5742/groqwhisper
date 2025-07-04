@@ -1,8 +1,7 @@
 import logging
 import os
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
+from tkinter import messagebox,ttk
 from typing import Dict, Any
 
 from config_manager import get_config_value
@@ -31,16 +30,13 @@ class ReplacementsEditor:
         )
         self.text_area.pack(expand=True, fill='both', padx=10, pady=5)
 
-        # スクロールバーの追加
         scrollbar = ttk.Scrollbar(self.window, command=self.text_area.yview)
         scrollbar.pack(side='right', fill='y')
         self.text_area['yscrollcommand'] = scrollbar.set
 
-        # ボタンフレーム
         button_frame = ttk.Frame(self.window)
         button_frame.pack(fill='x', padx=10, pady=5)
 
-        # 保存ボタン
         save_button = ttk.Button(
             button_frame,
             text='保存',
@@ -48,7 +44,6 @@ class ReplacementsEditor:
         )
         save_button.pack(side='left', padx=5)
 
-        # キャンセルボタン
         cancel_button = ttk.Button(
             button_frame,
             text='キャンセル',
@@ -56,15 +51,12 @@ class ReplacementsEditor:
         )
         cancel_button.pack(side='left', padx=5)
 
-        # ファイル読み込み
         self.load_file()
 
-        # ウィンドウを最前面に
         self.window.transient(parent)
         self.window.grab_set()
 
     def load_file(self) -> None:
-        """ファイルの内容を読み込んでテキストエリアに表示"""
         replacements_path = self.config['PATHS']['replacements_file']
 
         try:
@@ -86,11 +78,9 @@ class ReplacementsEditor:
             )
 
     def save_file(self) -> None:
-        """テキストエリアの内容をファイルに保存"""
         replacements_path = self.config['PATHS']['replacements_file']
 
         try:
-            # ディレクトリが存在しない場合は作成
             os.makedirs(os.path.dirname(replacements_path), exist_ok=True)
 
             content = self.text_area.get('1.0', 'end-1c')

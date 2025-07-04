@@ -1,7 +1,7 @@
 import logging
-from typing import Dict, Any, Callable
-import keyboard
 import tkinter as tk
+from typing import Any, Callable, Dict
+import keyboard
 
 
 class KeyboardHandler:

@@ -1,5 +1,5 @@
-import tkinter as tk
 import logging
+import tkinter as tk
 from typing import Dict, Any, Optional
 
 
@@ -31,7 +31,7 @@ class NotificationManager:
 
     def show_error_message(self, title: str, message: str):
         try:
-            self.show_timed_message(f"エラー: {title}", message, 3000)
+            self.show_timed_message(f"エラー: {title}", message)
         except Exception as e:
             logging.error(f"エラー通知の表示中にエラーが発生しました: {str(e)}")
 
