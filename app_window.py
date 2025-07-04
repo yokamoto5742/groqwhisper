@@ -1,14 +1,12 @@
 import logging
 import tkinter as tk
-import os
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 from app_ui_components import UIComponents
-from service_keyboard_handler import KeyboardHandler
-from service_recording_controller import RecordingController
-from service_transcription import transcribe_audio
-from service_notification import NotificationManager
 from config_manager import save_config
+from service.keyboard_handler import KeyboardHandler
+from service.notification import NotificationManager
+from service.recording_controller import RecordingController
 
 
 class VoiceInputManager:

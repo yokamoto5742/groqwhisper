@@ -6,12 +6,12 @@ import traceback
 import logging
 
 from config_manager import load_config
-from service_audio_recorder import AudioRecorder
 from log_rotation import setup_logging
 from app_window import VoiceInputManager
-from service_text_processing import load_replacements
-from service_transcription import setup_groq_client
 from version import VERSION
+from service.audio_recorder import AudioRecorder
+from service.text_processing import load_replacements
+from external_service.transcription import setup_groq_client
 
 
 def main():
@@ -45,9 +45,6 @@ def main():
 
         except Exception as dialog_error:
             print(f"エラーダイアログ表示中に例外が発生: {str(dialog_error)}", file=sys.stderr)
-
-        finally:
-            sys.exit(1)
 
 
 if __name__ == "__main__":

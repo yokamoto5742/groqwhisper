@@ -7,9 +7,9 @@ import tkinter as tk
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Callable, List
 
-from audio_recorder import save_audio
-from text_processing import copy_and_paste_transcription
-from transcription import transcribe_audio
+from service.audio_recorder import save_audio
+from service.text_processing import copy_and_paste_transcription
+from external_service.transcription import transcribe_audio
 
 
 class RecordingController:
