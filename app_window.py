@@ -1,6 +1,6 @@
 import logging
 import tkinter as tk
-from typing import Dict, Any
+from typing import Any, Dict
 
 from app_ui_components import UIComponents
 from config_manager import save_config

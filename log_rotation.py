@@ -1,8 +1,8 @@
-import os
-import logging
 import configparser
-from logging.handlers import TimedRotatingFileHandler
+import logging
+import os
 from datetime import datetime, timedelta
+from logging.handlers import TimedRotatingFileHandler
 
 
 def load_config() -> configparser.ConfigParser:

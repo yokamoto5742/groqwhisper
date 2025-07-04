@@ -1,17 +1,17 @@
-import sys
-import os
-import tkinter as tk
-from tkinter import messagebox
-import traceback
 import logging
+import os
+import sys
+import tkinter as tk
+import traceback
+from tkinter import messagebox
 
-from config_manager import load_config
-from log_rotation import setup_logging
 from app_window import VoiceInputManager
-from version import VERSION
+from config_manager import load_config
+from external_service.groq_api import setup_groq_client
+from log_rotation import setup_logging
 from service.audio_recorder import AudioRecorder
 from service.text_processing import load_replacements
-from external_service.groq_api import setup_groq_client
+from version import VERSION
 
 
 def main():

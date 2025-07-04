@@ -1,10 +1,11 @@
-import tkinter as tk
-import pyautogui
 import glob
-import os
 import logging
+import os
+import tkinter as tk
 from tkinter import filedialog, messagebox
-from typing import Optional, Dict, Any, Callable
+from typing import Any, Callable, Dict, Optional
+
+import pyautogui
 
 from service.replacements_editor import ReplacementsEditor
 

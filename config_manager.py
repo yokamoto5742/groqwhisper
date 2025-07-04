@@ -28,7 +28,7 @@ def get_config_value(config: configparser.ConfigParser, section: str, key: str, 
 def load_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     try:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        with open(CONFIG_PATH, encoding='utf-8') as f:
             config.read_file(f)
     except FileNotFoundError:
         print(f"設定ファイルが見つかりません: {CONFIG_PATH}")
