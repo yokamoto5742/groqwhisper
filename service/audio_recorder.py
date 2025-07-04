@@ -1,11 +1,10 @@
-import pyaudio
-import wave
-import tempfile
 import logging
 import os
-import glob
-from datetime import datetime, timedelta
+import wave
+from datetime import datetime
 from typing import List, Tuple, Optional
+
+import pyaudio
 
 
 class AudioRecorder:

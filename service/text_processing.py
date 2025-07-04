@@ -23,7 +23,7 @@ def load_replacements() -> Dict[str, str]:
     logging.info(f"置換ルールファイルのパス: {file_path}")
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             lines = f.readlines()
             logging.info(f"置換ルールファイルの行数: {len(lines)}")
 

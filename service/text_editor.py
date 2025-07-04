@@ -1,9 +1,9 @@
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-import os
 import logging
-from typing import Optional, Dict, Any
+import os
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+from typing import Dict, Any
 
 from config_manager import get_config_value
 
@@ -32,11 +32,7 @@ class ReplacementsEditor:
         self.text_area.pack(expand=True, fill='both', padx=10, pady=5)
 
         # スクロールバーの追加
-        scrollbar = ttk.Scrollbar(
-            self.window,
-            orient='vertical',
-            command=self.text_area.yview
-        )
+        scrollbar = ttk.Scrollbar(self.window, command=self.text_area.yview)
         scrollbar.pack(side='right', fill='y')
         self.text_area['yscrollcommand'] = scrollbar.set
 
@@ -73,7 +69,7 @@ class ReplacementsEditor:
 
         try:
             if os.path.exists(replacements_path):
-                with open(replacements_path, 'r', encoding='utf-8') as f:
+                with open(replacements_path, encoding='utf-8') as f:
                     content = f.read()
                 self.text_area.insert('1.0', content)
             else:

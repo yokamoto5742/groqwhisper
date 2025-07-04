@@ -1,15 +1,15 @@
-import os
-import logging
-import threading
-import tkinter as tk
-from typing import Optional, Dict, Any, Callable, List, Tuple
-from functools import wraps
-from datetime import datetime, timedelta
 import glob
+import logging
+import os
+import threading
+import time
+import tkinter as tk
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, Callable, List
 
-from service_audio_recorder import save_audio
-from service_transcription import transcribe_audio
-from service_text_processing import replace_text, copy_and_paste_transcription
+from audio_recorder import save_audio
+from text_processing import copy_and_paste_transcription
+from transcription import transcribe_audio
 
 
 class RecordingController:
