@@ -24,8 +24,12 @@ def transcribe_audio(
         logging.warning("音声ファイルパスが未指定")
         return None
 
+    # チェックポイントログ用
+    checkpoint_logger = logging.getLogger('checkpoint')
+
     try:
         logging.info("文字起こし開始")
+        checkpoint_logger.info("CHECKPOINT_1: 文字起こし処理開始")
 
         # ファイル存在確認
         if not os.path.exists(audio_file_path):
@@ -40,12 +44,16 @@ def transcribe_audio(
             logging.error("音声ファイルのサイズが0バイトです")
             return None
 
+        checkpoint_logger.info("CHECKPOINT_2: ファイル検証完了")
+
         logging.info("ファイル読み込み開始")
         with open(audio_file_path, "rb") as file:
             file_content = file.read()
             logging.info(f"ファイル読み込み完了: {len(file_content)} bytes")
 
+            checkpoint_logger.info("CHECKPOINT_3: API呼び出し開始")
             logging.info("Groq API呼び出し開始")
+
             transcription = client.audio.transcriptions.create(
                 file=(os.path.basename(audio_file_path), file_content),
                 model=config['WHISPER']['MODEL'],
@@ -53,32 +61,51 @@ def transcribe_audio(
                 response_format="text",
                 language=config['WHISPER']['LANGUAGE']
             )
+
+            checkpoint_logger.info("CHECKPOINT_4: API呼び出し完了")
             logging.info("Groq API呼び出し完了")
 
-        # レスポンス内容の詳細チェック
-        logging.info(f"APIレスポンスのタイプ: {type(transcription)}")
+        # レスポンス内容の安全な処理
+        checkpoint_logger.info("CHECKPOINT_5: レスポンス処理開始")
 
-        if transcription is None:
-            logging.error("APIからのレスポンスがNoneです")
-            return None
+        try:
+            logging.info(f"APIレスポンスのタイプ: {type(transcription)}")
+            logging.info(f"APIレスポンスの値: {repr(transcription)[:200]}")
 
-        # transcriptionが文字列でない場合の処理
-        if not isinstance(transcription, str):
-            logging.warning(f"レスポンスが文字列ではありません。型: {type(transcription)}, 値: {transcription}")
-            # オブジェクトから文字列を取得する試み
-            try:
-                if hasattr(transcription, 'text'):
-                    transcription = transcription.text
-                    logging.info("レスポンスオブジェクトからtextプロパティを取得しました")
-                else:
-                    transcription = str(transcription)
-                    logging.info("レスポンスを文字列に変換しました")
-            except Exception as convert_error:
-                logging.error(f"レスポンス変換エラー: {str(convert_error)}")
+            if transcription is None:
+                logging.error("APIからのレスポンスがNoneです")
                 return None
 
+            # 安全な文字列変換
+            text_result = None
+
+            if isinstance(transcription, str):
+                text_result = transcription
+                logging.info("レスポンスは既に文字列形式です")
+            elif hasattr(transcription, 'text') and transcription.text is not None:
+                text_result = str(transcription.text)
+                logging.info("レスポンスオブジェクトからtextプロパティを取得しました")
+            elif hasattr(transcription, '__str__'):
+                text_result = str(transcription)
+                logging.info("レスポンスを文字列に変換しました")
+            else:
+                logging.error(f"予期しないレスポンス形式: {type(transcription)}")
+                logging.error(f"レスポンス内容: {transcription}")
+                return None
+
+            if text_result is None:
+                logging.error("文字列変換後の結果がNoneです")
+                return None
+
+        except Exception as response_error:
+            logging.error(f"レスポンス変換中の予期しないエラー: {str(response_error)}")
+            logging.debug(f"レスポンス変換エラー詳細: {traceback.format_exc()}")
+            return None
+
+        checkpoint_logger.info("CHECKPOINT_6: レスポンス処理完了")
+
         # 文字数チェック
-        char_count = len(transcription) if transcription else 0
+        char_count = len(text_result) if text_result else 0
         logging.info(f"文字起こし結果の文字数: {char_count}")
 
         if char_count == 0:
@@ -86,56 +113,66 @@ def transcribe_audio(
             return ""
 
         # 句読点処理開始
+        checkpoint_logger.info("CHECKPOINT_7: 句読点処理開始")
         logging.info("句読点処理開始")
-        original_text = transcription
+        original_text = text_result
 
         try:
-            if not use_punctuation:
+            if not use_punctuation and isinstance(text_result, str):
                 logging.info("句読点（。）を削除します")
-                transcription = transcription.replace('。', '')
-                logging.info(f"句読点削除後の文字数: {len(transcription)}")
+                text_result = text_result.replace('。', '')
+                logging.info(f"句読点削除後の文字数: {len(text_result)}")
 
-            if not use_comma:
+            if not use_comma and isinstance(text_result, str):
                 logging.info("読点（、）を削除します")
-                transcription = transcription.replace('、', '')
-                logging.info(f"読点削除後の文字数: {len(transcription)}")
+                text_result = text_result.replace('、', '')
+                logging.info(f"読点削除後の文字数: {len(text_result)}")
 
-        except Exception as punctuation_error:
-            logging.error(f"句読点処理中にエラー: {str(punctuation_error)}")
+        except (AttributeError, TypeError) as punctuation_error:
+            logging.error(f"句読点処理中にタイプエラー: {str(punctuation_error)}")
             # エラーが発生した場合は元のテキストを返す
-            transcription = original_text
+            text_result = original_text
+        except Exception as punctuation_error:
+            logging.error(f"句読点処理中に予期しないエラー: {str(punctuation_error)}")
+            # エラーが発生した場合は元のテキストを返す
+            text_result = original_text
 
+        checkpoint_logger.info("CHECKPOINT_8: 句読点処理完了")
         logging.info("句読点処理完了")
 
         # 最終結果のログ
-        final_char_count = len(transcription) if transcription else 0
+        final_char_count = len(text_result) if text_result else 0
         logging.info(f"文字起こし完了: {final_char_count}文字")
 
         # デバッグ用：最初の100文字をログに出力
-        if transcription and len(transcription) > 0:
-            preview_text = transcription[:100] + "..." if len(transcription) > 100 else transcription
+        if text_result and len(text_result) > 0:
+            preview_text = text_result[:100] + "..." if len(text_result) > 100 else text_result
             logging.debug(f"文字起こし結果プレビュー: {preview_text}")
 
-        return transcription
+        checkpoint_logger.info("CHECKPOINT_9: 処理完了")
+        return text_result
 
     except FileNotFoundError as e:
+        checkpoint_logger.error(f"CHECKPOINT_ERROR: FileNotFoundError - {str(e)}")
         logging.error(f"ファイルが見つかりません: {str(e)}")
         logging.debug(f"詳細: {traceback.format_exc()}")
         return None
     except PermissionError as e:
+        checkpoint_logger.error(f"CHECKPOINT_ERROR: PermissionError - {str(e)}")
         logging.error(f"ファイルアクセス権限エラー: {str(e)}")
         logging.debug(f"詳細: {traceback.format_exc()}")
         return None
     except OSError as e:
+        checkpoint_logger.error(f"CHECKPOINT_ERROR: OSError - {str(e)}")
         logging.error(f"OS関連エラー: {str(e)}")
         logging.debug(f"詳細: {traceback.format_exc()}")
         return None
     except Exception as e:
+        checkpoint_logger.error(f"CHECKPOINT_ERROR: Exception - {str(e)}")
         logging.error(f"文字起こしエラー: {str(e)}")
         logging.error(f"エラーのタイプ: {type(e).__name__}")
         logging.debug(f"詳細: {traceback.format_exc()}")
 
-        # 追加のデバッグ情報
         try:
             logging.error(f"音声ファイルパス: {audio_file_path}")
             logging.error(f"use_punctuation: {use_punctuation}")
