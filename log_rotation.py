@@ -22,47 +22,31 @@ def setup_logging(config: configparser.ConfigParser):
     parent_dir_name = os.path.basename(os.path.dirname(os.path.dirname(log_directory)))
     log_file = os.path.join(log_directory, f'{parent_dir_name}.log')
 
-    # メインのファイルハンドラー
-    file_handler = TimedRotatingFileHandler(
-        filename=log_file,
-        when='midnight',
-        interval=1,
-        backupCount=log_retention_days,
-        encoding='utf-8'
-    )
+    file_handler = TimedRotatingFileHandler(filename=log_file, when='midnight', backupCount=log_retention_days,
+                                            encoding='utf-8')
     file_handler.suffix = "%Y-%m-%d.log"
 
-    # チェックポイント用の詳細ログファイルハンドラー
     checkpoint_log_file = os.path.join(log_directory, f'{parent_dir_name}_checkpoint.log')
-    checkpoint_handler = TimedRotatingFileHandler(
-        filename=checkpoint_log_file,
-        when='midnight',
-        interval=1,
-        backupCount=log_retention_days,
-        encoding='utf-8'
-    )
+    checkpoint_handler = TimedRotatingFileHandler(filename=checkpoint_log_file, when='midnight',
+                                                  backupCount=log_retention_days, encoding='utf-8')
     checkpoint_handler.suffix = "%Y-%m-%d.log"
 
-    # ログフォーマッター
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
     checkpoint_handler.setFormatter(formatter)
 
-    # ルートロガーの設定
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(file_handler)
 
-    # チェックポイントロガーの設定
     checkpoint_logger = logging.getLogger('checkpoint')
     checkpoint_logger.setLevel(logging.INFO)
     checkpoint_logger.addHandler(checkpoint_handler)
     checkpoint_logger.propagate = False  # ルートロガーに伝播しない
 
-    # コンソール出力も追加（デバッグ用）
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.WARNING)  # 警告以上のみコンソール出力
+    console_handler.setLevel(logging.WARNING)  # WARNING以上のみコンソール出力
     root_logger.addHandler(console_handler)
 
     cleanup_old_logs(log_directory, log_retention_days)
@@ -72,7 +56,6 @@ def cleanup_old_logs(log_directory: str, retention_days: int):
     now = datetime.now()
     parent_dir_name = os.path.basename(os.path.dirname(os.path.dirname(log_directory)))
 
-    # 削除対象のファイルパターン
     main_log_file = f'{parent_dir_name}.log'
     checkpoint_log_file = f'{parent_dir_name}_checkpoint.log'
 
@@ -89,11 +72,9 @@ def cleanup_old_logs(log_directory: str, retention_days: int):
 
 
 def setup_debug_logging():
-    """デバッグ用の詳細ログ設定"""
     debug_logger = logging.getLogger('debug')
     debug_logger.setLevel(logging.DEBUG)
 
-    # デバッグファイルハンドラー
     debug_handler = logging.FileHandler('debug.log', encoding='utf-8')
     debug_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s')

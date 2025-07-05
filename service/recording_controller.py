@@ -63,7 +63,6 @@ class RecordingController:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {e}")
 
     def _handle_error(self, error_msg: str):
-        """エラーハンドリングの安全なラッパー"""
         try:
             if self.master and self.master.winfo_exists():
                 self.show_notification("エラー", error_msg)
@@ -248,7 +247,6 @@ class RecordingController:
                 logging.info("処理がキャンセルされました")
                 return
 
-            # 安全なUIスレッド呼び出し
             if self.master and self.master.winfo_exists():
                 self.master.after(0, self._safe_ui_update, transcription)
             else:
@@ -260,7 +258,6 @@ class RecordingController:
                 self.master.after(0, self._safe_error_handler, str(e))
 
     def _safe_ui_update(self, text: str):
-        """UI更新の安全なラッパー"""
         try:
             if self.master and self.master.winfo_exists():
                 self.ui_update(text)
@@ -268,7 +265,6 @@ class RecordingController:
             logging.error(f"UI更新中にエラー: {str(e)}")
 
     def _safe_error_handler(self, error_msg: str):
-        """エラーハンドリングの安全なラッパー"""
         try:
             if self.master and self.master.winfo_exists():
                 self._handle_error(error_msg)
@@ -291,7 +287,6 @@ class RecordingController:
 
     def cleanup(self):
         try:
-            # キャンセルフラグを設定
             self.cancel_processing = True
 
             if self.recorder.is_recording:

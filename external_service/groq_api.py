@@ -24,19 +24,16 @@ def transcribe_audio(
         logging.warning("音声ファイルパスが未指定")
         return None
 
-    # チェックポイントログ用
     checkpoint_logger = logging.getLogger('checkpoint')
 
     try:
         logging.info("文字起こし開始")
         checkpoint_logger.info("CHECKPOINT_1: 文字起こし処理開始")
 
-        # ファイル存在確認
         if not os.path.exists(audio_file_path):
             logging.error(f"音声ファイルが存在しません: {audio_file_path}")
             return None
 
-        # ファイルサイズ確認
         file_size = os.path.getsize(audio_file_path)
         logging.info(f"音声ファイルサイズ: {file_size} bytes")
 
@@ -65,7 +62,6 @@ def transcribe_audio(
             checkpoint_logger.info("CHECKPOINT_4: API呼び出し完了")
             logging.info("Groq API呼び出し完了")
 
-        # レスポンス内容の安全な処理
         checkpoint_logger.info("CHECKPOINT_5: レスポンス処理開始")
 
         try:
@@ -76,7 +72,6 @@ def transcribe_audio(
                 logging.error("APIからのレスポンスがNoneです")
                 return None
 
-            # 安全な文字列変換
             text_result = None
 
             if isinstance(transcription, str):
@@ -104,7 +99,6 @@ def transcribe_audio(
 
         checkpoint_logger.info("CHECKPOINT_6: レスポンス処理完了")
 
-        # 文字数チェック
         char_count = len(text_result) if text_result else 0
         logging.info(f"文字起こし結果の文字数: {char_count}")
 
@@ -112,7 +106,6 @@ def transcribe_audio(
             logging.warning("文字起こし結果が空です")
             return ""
 
-        # 句読点処理開始
         checkpoint_logger.info("CHECKPOINT_7: 句読点処理開始")
         logging.info("句読点処理開始")
         original_text = text_result
@@ -130,23 +123,20 @@ def transcribe_audio(
 
         except (AttributeError, TypeError) as punctuation_error:
             logging.error(f"句読点処理中にタイプエラー: {str(punctuation_error)}")
-            # エラーが発生した場合は元のテキストを返す
             text_result = original_text
         except Exception as punctuation_error:
             logging.error(f"句読点処理中に予期しないエラー: {str(punctuation_error)}")
-            # エラーが発生した場合は元のテキストを返す
             text_result = original_text
 
         checkpoint_logger.info("CHECKPOINT_8: 句読点処理完了")
         logging.info("句読点処理完了")
 
-        # 最終結果のログ
         final_char_count = len(text_result) if text_result else 0
         logging.info(f"文字起こし完了: {final_char_count}文字")
 
-        # デバッグ用：最初の100文字をログに出力
+        # デバッグ用：最初の10文字をログに出力
         if text_result and len(text_result) > 0:
-            preview_text = text_result[:100] + "..." if len(text_result) > 100 else text_result
+            preview_text = text_result[:10] + "..." if len(text_result) > 10 else text_result
             logging.debug(f"文字起こし結果プレビュー: {preview_text}")
 
         checkpoint_logger.info("CHECKPOINT_9: 処理完了")
