@@ -12,7 +12,7 @@ def build_executable():
         "--windowed",
         "--icon=assets/GroqWhisper.ico",
         "--add-data", "config.ini:.",
-        "--add-data", "replacements.txt:.",
+        "--add-data", "service/replacements.txt:.",
         "main.py"
     ])
 
