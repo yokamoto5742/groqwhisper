@@ -134,7 +134,6 @@ App: {'初期化済み' if app else '未初期化'}
 def _show_error_dialog(message: str, title: str = "エラー"):
     try:
         try:
-            import tkinter as tk
             root = tk._default_root
             if root:
                 root.withdraw()
