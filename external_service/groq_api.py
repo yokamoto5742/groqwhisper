@@ -5,11 +5,14 @@ from typing import Optional
 
 from groq import Groq
 
+from utils.env_loader import load_env_variables
+
 
 def setup_groq_client() -> Groq:
-    api_key = os.environ.get("GROQ_API_KEY")
+    env_vars = load_env_variables()
+    api_key = env_vars.get("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEYの環境変数が未設定です")
+        raise ValueError("GROQ_API_KEYが未設定です")
     return Groq(api_key=api_key)
 
 
