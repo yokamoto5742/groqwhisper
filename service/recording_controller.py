@@ -38,6 +38,10 @@ class RecordingController:
         self.five_second_notification_shown: bool = False
         self.processing_thread: Optional[threading.Thread] = None
 
+        # UI有効性確認用のロック
+        self._ui_lock = threading.Lock()
+        self._scheduled_tasks = set()  # スケジュールされたタスクを追跡
+
         self.use_punctuation: bool = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
         self.use_comma: bool = self.use_punctuation
 
@@ -45,6 +49,59 @@ class RecordingController:
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
         os.makedirs(self.temp_dir, exist_ok=True)
         self._cleanup_temp_files()
+
+    def _is_ui_valid(self) -> bool:
+        """UIが有効かどうかを安全に確認"""
+        try:
+            return (self.master is not None and
+                    hasattr(self.master, 'winfo_exists') and
+                    self.master.winfo_exists())
+        except tk.TclError:
+            return False
+        except Exception:
+            return False
+
+    def _schedule_ui_task(self, delay: int, callback: Callable, *args) -> Optional[str]:
+        """UIタスクを安全にスケジュール"""
+        if not self._is_ui_valid():
+            logging.warning("UIが無効なため、タスクをスケジュールできません")
+            return None
+
+        try:
+            task_id = self.master.after(delay, self._safe_ui_task_wrapper, callback, *args)
+            with self._ui_lock:
+                self._scheduled_tasks.add(task_id)
+            return task_id
+        except Exception as e:
+            logging.error(f"UIタスクのスケジュール中にエラー: {str(e)}")
+            return None
+
+    def _safe_ui_task_wrapper(self, callback: Callable, *args):
+        """UIタスクの安全な実行ラッパー"""
+        task_id = None
+        try:
+            # 現在のタスクIDを特定（Tkinterの内部実装に依存するため、できる範囲で）
+            with self._ui_lock:
+                # スケジュールされたタスクから削除（正確なIDが取得できないため、古いタスクをクリア）
+                self._scheduled_tasks.clear()
+
+            if self._is_ui_valid():
+                callback(*args)
+            else:
+                logging.warning("UIが無効なため、タスクを実行できません")
+        except Exception as e:
+            logging.error(f"UIタスク実行中にエラー: {str(e)}")
+
+    def _cancel_scheduled_tasks(self):
+        """スケジュールされたタスクをキャンセル"""
+        with self._ui_lock:
+            for task_id in self._scheduled_tasks:
+                try:
+                    if self._is_ui_valid():
+                        self.master.after_cancel(task_id)
+                except Exception as e:
+                    logging.debug(f"タスクキャンセル中にエラー（無視）: {str(e)}")
+            self._scheduled_tasks.clear()
 
     def _cleanup_temp_files(self):
         try:
@@ -64,7 +121,7 @@ class RecordingController:
 
     def _handle_error(self, error_msg: str):
         try:
-            if self.master and self.master.winfo_exists():
+            if self._is_ui_valid():
                 self.show_notification("エラー", error_msg)
                 self.ui_callbacks['update_status_label'](
                     f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
@@ -100,26 +157,29 @@ class RecordingController:
         self.recording_timer.start()
 
         self.five_second_notification_shown = False
-        if self.master and self.master.winfo_exists():
-            self.five_second_timer = self.master.after(
-                (auto_stop_timer - 5) * 1000,
-                self.show_five_second_notification
-            )
+        self.five_second_timer = self._schedule_ui_task(
+            (auto_stop_timer - 5) * 1000,
+            self.show_five_second_notification
+        )
 
     def _safe_record(self):
         try:
             self.recorder.record()
         except Exception as e:
             logging.error(f"録音中にエラーが発生しました: {str(e)}")
-            if self.master and self.master.winfo_exists():
-                self.master.after(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+            self._schedule_ui_task(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
 
     def stop_recording(self):
         try:
             if self.recording_timer and self.recording_timer.is_alive():
                 self.recording_timer.cancel()
-            if self.five_second_timer and self.master and self.master.winfo_exists():
-                self.master.after_cancel(self.five_second_timer)
+
+            if self.five_second_timer:
+                try:
+                    if self._is_ui_valid():
+                        self.master.after_cancel(self.five_second_timer)
+                except Exception:
+                    pass  # 既にキャンセルされている可能性があるため無視
                 self.five_second_timer = None
 
             self._stop_recording_process()
@@ -127,15 +187,13 @@ class RecordingController:
             self._safe_error_handler(f"録音の停止中にエラーが発生しました: {str(e)}")
 
     def auto_stop_recording(self):
-        if self.master and self.master.winfo_exists():
-            self.master.after(0, self._auto_stop_recording_ui)
+        self._schedule_ui_task(0, self._auto_stop_recording_ui)
 
     def _auto_stop_recording_ui(self):
         try:
             self.show_notification("自動停止", "アプリケーションを終了します")
             self._stop_recording_process()
-            if self.master and self.master.winfo_exists():
-                self.master.after(1000, self.master.quit)
+            self._schedule_ui_task(1000, self.master.quit)
         except Exception as e:
             logging.error(f"自動停止処理中にエラー: {str(e)}")
 
@@ -154,8 +212,7 @@ class RecordingController:
             )
             self.processing_thread.start()
 
-            if self.master and self.master.winfo_exists():
-                self.master.after(100, self._check_process_thread, self.processing_thread)
+            self._schedule_ui_task(100, self._check_process_thread, self.processing_thread)
         except Exception as e:
             logging.error(f"録音停止処理中にエラー: {str(e)}")
             self._safe_error_handler(f"録音停止処理中にエラー: {str(e)}")
@@ -170,15 +227,14 @@ class RecordingController:
                 return
 
             self.ui_callbacks['update_status_label']("テキスト出力中...")
-            if self.master and self.master.winfo_exists():
-                self.master.after(100, self._check_process_thread, thread)
+            self._schedule_ui_task(100, self._check_process_thread, thread)
         except Exception as e:
             logging.error(f"処理スレッドチェック中にエラー: {str(e)}")
 
     def show_five_second_notification(self):
         try:
             if self.recorder.is_recording and not self.five_second_notification_shown:
-                if self.master and self.master.winfo_exists():
+                if self._is_ui_valid():
                     self.master.lift()
                     self.master.attributes('-topmost', True)
                     self.master.attributes('-topmost', False)
@@ -247,47 +303,64 @@ class RecordingController:
                 logging.info("処理がキャンセルされました")
                 return
 
-            if self.master and self.master.winfo_exists():
-                self.master.after(0, self._safe_ui_update, transcription)
-            else:
-                logging.warning("UIが利用できません")
+            # より安全なUI更新スケジュール
+            self._schedule_ui_task(0, self._safe_ui_update, transcription)
 
         except Exception as e:
             logging.error(f"文字起こし処理中にエラー: {str(e)}")
-            if self.master and self.master.winfo_exists():
-                self.master.after(0, self._safe_error_handler, str(e))
+            self._schedule_ui_task(0, self._safe_error_handler, str(e))
 
     def _safe_ui_update(self, text: str):
         try:
-            if self.master and self.master.winfo_exists():
+            if self._is_ui_valid():
                 self.ui_update(text)
+            else:
+                logging.warning("UIが無効なため、UI更新をスキップします")
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
 
     def _safe_error_handler(self, error_msg: str):
         try:
-            if self.master and self.master.winfo_exists():
+            if self._is_ui_valid():
                 self._handle_error(error_msg)
+            else:
+                logging.error(f"UI無効時のエラー: {error_msg}")
         except Exception as e:
             logging.error(f"エラーハンドリング中にエラー: {str(e)}")
 
     def ui_update(self, text: str):
         try:
             paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
-            if self.master and self.master.winfo_exists():
-                self.master.after(paste_delay, lambda: self.copy_and_paste(text))
+            self._schedule_ui_task(paste_delay, self.copy_and_paste, text)
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
 
     def copy_and_paste(self, text: str):
         try:
+            # テキスト処理を別スレッドで実行してUIをブロックしない
+            threading.Thread(
+                target=self._safe_copy_and_paste,
+                args=(text,),
+                daemon=True
+            ).start()
+        except Exception as e:
+            logging.error(f"コピー&ペースト開始中にエラー: {str(e)}")
+
+    def _safe_copy_and_paste(self, text: str):
+        """安全なコピー&ペースト実行"""
+        try:
             copy_and_paste_transcription(text, self.replacements, self.config)
         except Exception as e:
-            logging.error(f"コピー&ペースト中にエラー: {str(e)}")
+            logging.error(f"コピー&ペースト実行中にエラー: {str(e)}")
+            # エラーが発生した場合もUIに通知
+            self._schedule_ui_task(0, self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
 
     def cleanup(self):
         try:
             self.cancel_processing = True
+
+            # スケジュールされたタスクをキャンセル
+            self._cancel_scheduled_tasks()
 
             if self.recorder.is_recording:
                 self.stop_recording()
@@ -306,8 +379,12 @@ class RecordingController:
             if self.recording_timer and self.recording_timer.is_alive():
                 self.recording_timer.cancel()
 
-            if self.five_second_timer and self.master and self.master.winfo_exists():
-                self.master.after_cancel(self.five_second_timer)
+            if self.five_second_timer:
+                try:
+                    if self._is_ui_valid():
+                        self.master.after_cancel(self.five_second_timer)
+                except Exception:
+                    pass
 
             self._cleanup_temp_files()
 

@@ -1,4 +1,6 @@
 import logging
+import sys
+import time
 import tkinter as tk
 from typing import Any, Dict
 
@@ -83,7 +85,16 @@ class VoiceInputManager:
         save_config(self.config)
 
     def close_application(self):
-        self.recording_controller.cleanup()
-        self.keyboard_handler.cleanup()
-        self.notification_manager.cleanup()
-        self.master.quit()
+        try:
+            if self.recording_controller:
+                self.recording_controller.cleanup()
+            if self.keyboard_handler:
+                self.keyboard_handler.cleanup()
+            if self.notification_manager:
+                self.notification_manager.cleanup()
+            time.sleep(0.1)
+            self.master.quit()
+
+        except Exception as e:
+            logging.error(f"アプリケーション終了処理中にエラー: {str(e)}")
+            sys.exit(1)
