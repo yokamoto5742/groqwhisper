@@ -3,7 +3,7 @@ import tkinter as tk
 from typing import Any, Dict
 
 from app_ui_components import UIComponents
-from config_manager import save_config
+from utils.config_manager import save_config
 from service.keyboard_handler import KeyboardHandler
 from service.notification import NotificationManager
 from service.recording_controller import RecordingController

@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox,ttk
 from typing import Dict, Any
 
-from config_manager import get_config_value
+from utils.config_manager import get_config_value
 
 
 class ReplacementsEditor:
