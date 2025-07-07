@@ -5,6 +5,7 @@ logs/
 
 *.spec
 *.iml
+*.env
 
 misc.xml
 error_log.txt
