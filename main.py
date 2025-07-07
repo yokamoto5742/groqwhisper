@@ -6,9 +6,9 @@ import traceback
 from tkinter import messagebox
 
 from app_window import VoiceInputManager
-from config_manager import load_config
 from external_service.groq_api import setup_groq_client
-from log_rotation import setup_logging, setup_debug_logging
+from utils.config_manager import load_config
+from utils.log_rotation import setup_logging, setup_debug_logging
 from service.audio_recorder import AudioRecorder
 from service.text_processing import load_replacements
 from version import VERSION
