@@ -8,11 +8,13 @@ from tkinter import messagebox
 from app_window import VoiceInputManager
 from external_service.groq_api import setup_groq_client
 from utils.config_manager import load_config
+from utils.env_loader import load_environment_variables
 from utils.log_rotation import setup_logging, setup_debug_logging
 from service.audio_recorder import AudioRecorder
 from service.text_processing import load_replacements
 from version import VERSION
 
+load_environment_variables()
 
 def main():
     config = None
