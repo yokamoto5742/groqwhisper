@@ -1,4 +1,16 @@
+============================================================
+プロジェクト構造: groqwhisper
+パス: C:\Users\yokam\PycharmProjects\groqwhisper
+生成日時: 2025-07-08 15:30:08
+============================================================
 
+└── groqwhisper
+    ├── assets
+    │   ├── GroqWhisper.ico
+    │   └── GroqWhisper.png
+    ├── docs
+    │   ├── README.md
+    │   └── LICENSE
     ├── external_service
     │   ├── __init__.py
     │   └── groq_api.py
@@ -11,6 +23,18 @@
     │   ├── replacements.txt
     │   ├── replacements_editor.py
     │   └── text_processing.py
+    ├── tests
+    │   ├── __init__.py
+    │   ├── test_app_ui_components.py
+    │   ├── test_app_window.py
+    │   ├── test_main.py
+    │   ├── test_service_audio_recorder.py
+    │   ├── test_service_keyboard_handler.py
+    │   ├── test_service_notification.py
+    │   ├── test_service_recording_controller.py
+    │   ├── test_service_text_editor.py
+    │   ├── test_text_processing.py
+    │   └── test_transcription.py
     ├── utils
     │   ├── logs
     │   ├── config.ini
@@ -20,3 +44,12 @@
     ├── app_ui_components.py
     ├── app_window.py
     ├── main.py
+    ├── project_structure.py
+    ├── project_structure.txt
+    ├── version.py
+    ├── version.txt
+    └── version_manager.py
+
+============================================================
+除外パターン: *.egg-info, *.log, *.pyc, *.pyd, *.pyo, *.swo, *.swp, *.tmp, *~, .DS_Store, .cache, .coverage, .env, .git, .gitignore, .hg, .idea, .npm, .pytest_cache, .svn, .tox, .venv, .vscode, Thumbs.db, __pycache__, build, desktop.ini, dist, env, node_modules, venv
+============================================================
