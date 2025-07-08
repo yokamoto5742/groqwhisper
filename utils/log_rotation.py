@@ -8,18 +8,15 @@ from utils.config_manager import load_config, get_config_value
 
 
 def setup_logging(config=None):
-    """ログ設定を初期化する"""
     if config is None:
         config = load_config()
 
     try:
-        # 設定値の取得（デフォルト値付き）
         log_directory = get_config_value(config, 'LOGGING', 'log_directory', 'logs')
         log_retention_days = get_config_value(config, 'LOGGING', 'log_retention_days', 7)
         project_name = get_config_value(config, 'LOGGING', 'project_name', 'groqwhisper')
         log_level = get_config_value(config, 'LOGGING', 'log_level', 'INFO')
 
-        # ログディレクトリの絶対パス取得
         if not os.path.isabs(log_directory):
             utils_dir = os.path.dirname(__file__)
             log_directory = os.path.join(utils_dir, log_directory)
@@ -28,10 +25,8 @@ def setup_logging(config=None):
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-        # メインログファイルのパス
         log_file = os.path.join(log_directory, f'{project_name}.log')
 
-        # ファイルハンドラーの設定
         file_handler = TimedRotatingFileHandler(
             filename=log_file,
             when='midnight',
@@ -40,14 +35,11 @@ def setup_logging(config=None):
         )
         file_handler.suffix = "%Y-%m-%d.log"
 
-        # フォーマッターの設定
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
 
-        # ルートロガーの設定
         root_logger = logging.getLogger()
 
-        # ログレベルの設定
         try:
             level = getattr(logging, log_level.upper())
             root_logger.setLevel(level)
@@ -57,13 +49,11 @@ def setup_logging(config=None):
 
         root_logger.addHandler(file_handler)
 
-        # コンソールハンドラーの設定
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.WARNING)  # WARNING以上のみコンソール出力
         root_logger.addHandler(console_handler)
 
-        # 古いログファイルのクリーンアップ
         cleanup_old_logs(log_directory, log_retention_days, project_name)
 
         logging.info(f"ログシステムが初期化されました: {log_file}")
@@ -75,7 +65,6 @@ def setup_logging(config=None):
 
 
 def cleanup_old_logs(log_directory: str, retention_days: int, project_name: str):
-    """古いログファイルを削除する"""
     try:
         now = datetime.now()
         main_log_file = f'{project_name}.log'
@@ -86,7 +75,6 @@ def cleanup_old_logs(log_directory: str, retention_days: int, project_name: str)
         deleted_count = 0
         for filename in os.listdir(log_directory):
             if filename.endswith('.log') and filename != main_log_file:
-                # ローテートされたログファイルかどうかを確認
                 if re.match(rotated_log_pattern, filename):
                     file_path = os.path.join(log_directory, filename)
                     try:
@@ -106,12 +94,10 @@ def cleanup_old_logs(log_directory: str, retention_days: int, project_name: str)
 
 
 def setup_debug_logging(config=None):
-    """デバッグログ設定を初期化する"""
     if config is None:
         config = load_config()
 
     try:
-        # デバッグモードの確認
         debug_mode = get_config_value(config, 'LOGGING', 'debug_mode', False)
 
         if not debug_mode:
@@ -123,11 +109,9 @@ def setup_debug_logging(config=None):
             utils_dir = os.path.dirname(__file__)
             log_directory = os.path.join(utils_dir, log_directory)
 
-        # デバッグロガーの設定
         debug_logger = logging.getLogger('debug')
         debug_logger.setLevel(logging.DEBUG)
 
-        # デバッグログファイルのパス
         debug_log_path = os.path.join(log_directory, 'debug.log')
         debug_handler = logging.FileHandler(debug_log_path, encoding='utf-8')
         debug_formatter = logging.Formatter(
@@ -146,7 +130,6 @@ def setup_debug_logging(config=None):
 
 
 def get_log_info(config=None):
-    """現在のログ設定情報を取得する"""
     if config is None:
         config = load_config()
 
