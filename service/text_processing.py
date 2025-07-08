@@ -10,7 +10,6 @@ import pyperclip
 
 logger = logging.getLogger(__name__)
 
-# グローバルロック（クリップボード競合防止）
 _clipboard_lock = threading.Lock()
 _paste_lock = threading.Lock()
 
@@ -32,7 +31,6 @@ def load_replacements() -> Dict[str, str]:
     try:
         with open(file_path, encoding='utf-8') as f:
             lines = f.readlines()
-            logging.info(f"置換ルールファイルの行数: {len(lines)}")
 
             for line_number, line in enumerate(lines, 1):
                 line = line.strip()
@@ -46,7 +44,7 @@ def load_replacements() -> Dict[str, str]:
                     logging.error(f"置換ファイルの{line_number}行目に無効な行があります: {line}")
                     continue
 
-            logging.info(f"有効な置換ルールの総数: {len(replacements)}")
+            logging.info(f"置換ルールの総数: {len(replacements)}")
             if len(replacements) > 0:
                 logging.debug("読み込んだ置換ルール:")
                 for old, new in replacements.items():
@@ -91,14 +89,12 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
 
 
 def safe_clipboard_copy(text: str) -> bool:
-    """安全なクリップボードコピー"""
     with _clipboard_lock:
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 pyperclip.copy(text)
 
-                # コピーが成功したか検証
                 time.sleep(0.05)  # 短い待機
                 copied_text = pyperclip.paste()
                 if copied_text == text:
@@ -118,16 +114,12 @@ def safe_clipboard_copy(text: str) -> bool:
 
 
 def safe_paste_text() -> bool:
-    """安全なペースト実行"""
     with _paste_lock:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                # より安全なキー送信設定
-                pyautogui.FAILSAFE = False  # フェールセーフを一時的に無効化
+                pyautogui.FAILSAFE = False
                 pyautogui.PAUSE = 0.01  # 短い間隔
-
-                # Ctrl+Vを送信
                 pyautogui.hotkey('ctrl', 'v')
                 logging.info("ペースト実行完了")
                 return True
@@ -148,46 +140,31 @@ def safe_paste_text() -> bool:
         return False
 
 
-def paste_text():
-    """後方互換性のためのラッパー関数"""
-    try:
-        return safe_paste_text()
-    except Exception as e:
-        logging.error(f"貼り付け処理でエラー: {str(e)}", exc_info=True)
-        return False
-
-
 def copy_and_paste_transcription(
         text: str,
         replacements: Dict[str, str],
         config: Dict[str, Dict[str, str]]
 ):
-    """安全なコピー&ペースト実行"""
     if not text:
         logging.warning("空のテキスト")
         return
 
     try:
-        # テキスト置換
         replaced_text = replace_text(text, replacements)
         if not replaced_text:
             logging.error("テキスト置換結果が空です")
             return
 
-        # 安全なクリップボードコピー
         if not safe_clipboard_copy(replaced_text):
             raise Exception("クリップボードへのコピーに失敗しました")
 
-        # ペースト遅延の取得と適用
         try:
-            paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.1))
-            # 最小/最大遅延の制限
-            paste_delay = max(0.05, min(paste_delay, 2.0))
+            paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.2))
+            paste_delay = max(0.05, min(paste_delay, 1.0))
         except (ValueError, KeyError):
             paste_delay = 0.1
-            logging.warning("PASTE_DELAY設定が無効です。デフォルト値(0.1)を使用します")
+            logging.warning("PASTE_DELAY設定が無効です。デフォルト値を使用します")
 
-        # 遅延後にペースト実行
         def delayed_paste():
             try:
                 time.sleep(paste_delay)
@@ -196,7 +173,6 @@ def copy_and_paste_transcription(
             except Exception as paste_error:
                 logging.error(f"遅延ペースト中にエラー: {str(paste_error)}", exc_info=True)
 
-        # 別スレッドでペースト実行（UIをブロックしない）
         paste_thread = threading.Thread(target=delayed_paste, daemon=True)
         paste_thread.start()
 
@@ -205,16 +181,12 @@ def copy_and_paste_transcription(
         raise
 
 
-# 緊急時のクリップボード復旧関数
 def emergency_clipboard_recovery():
-    """クリップボードが破損した場合の復旧処理"""
     try:
         with _clipboard_lock:
-            # クリップボードをクリア
             pyperclip.copy("")
             time.sleep(0.1)
 
-            # 簡単なテキストでテスト
             test_text = "test"
             pyperclip.copy(test_text)
             time.sleep(0.1)
@@ -231,15 +203,11 @@ def emergency_clipboard_recovery():
         return False
 
 
-# モジュール初期化時の設定
 def _initialize_module():
-    """モジュール初期化時の設定"""
     try:
-        # PyAutoGUIの設定
         pyautogui.PAUSE = 0.01
         pyautogui.FAILSAFE = True
 
-        # クリップボードの初期化テスト
         test_result = emergency_clipboard_recovery()
         if not test_result:
             logging.warning("クリップボード初期化テストに失敗しました")
@@ -248,5 +216,4 @@ def _initialize_module():
         logging.error(f"モジュール初期化中にエラー: {str(e)}")
 
 
-# モジュール読み込み時に初期化実行
 _initialize_module()

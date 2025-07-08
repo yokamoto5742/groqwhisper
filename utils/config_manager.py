@@ -1,5 +1,4 @@
 import configparser
-import logging
 import os
 import sys
 from typing import Any
@@ -53,24 +52,3 @@ def save_config(config: configparser.ConfigParser):
     except IOError as e:
         print(f"設定ファイルの保存中にエラーが発生しました: {e}")
         raise
-
-
-def validate_config(config: configparser.ConfigParser) -> bool:
-    """設定ファイルの妥当性を検証"""
-    required_sections = ['AUDIO', 'WHISPER', 'CLIPBOARD', 'PATHS']
-
-    for section in required_sections:
-        if section not in config:
-            logging.error(f"必須セクション '{section}' が設定ファイルにありません")
-            return False
-
-    try:
-        int(config['AUDIO']['sample_rate'])
-        int(config['AUDIO']['channels'])
-        int(config['AUDIO']['chunk'])
-        float(config['CLIPBOARD']['paste_delay'])
-    except (ValueError, KeyError) as e:
-        logging.error(f"設定値が無効です: {str(e)}")
-        return False
-
-    return True

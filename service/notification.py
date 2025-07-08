@@ -27,13 +27,13 @@ class NotificationManager:
             self.current_popup.after(duration, self._destroy_popup)
 
         except Exception as e:
-            logging.error(f"通知表示中にエラーが発生しました: {str(e)}")
+            logging.error(f"通知中にエラーが発生しました: {str(e)}")
 
     def show_error_message(self, title: str, message: str):
         try:
             self.show_timed_message(f"エラー: {title}", message)
         except Exception as e:
-            logging.error(f"エラー通知の表示中にエラーが発生しました: {str(e)}")
+            logging.error(f"通知中にエラーが発生しました: {str(e)}")
 
     def show_status_message(self, message: str):
         try:

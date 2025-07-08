@@ -69,9 +69,6 @@ def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[
         temp_dir = config['PATHS']['TEMP_DIR']
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-
-        logging.info(f"音声ファイル保存開始")
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         temp_filename = f"audio_{timestamp}.wav"
         temp_path = os.path.join(temp_dir, temp_filename)
@@ -84,6 +81,7 @@ def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[
             wf.writeframes(b"".join(frames))
 
         logging.info(f"音声ファイル保存完了: {temp_path}")
+
         return temp_path
 
     except Exception as e:

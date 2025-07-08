@@ -38,9 +38,8 @@ class RecordingController:
         self.five_second_notification_shown: bool = False
         self.processing_thread: Optional[threading.Thread] = None
 
-        # UI有効性確認用のロック
         self._ui_lock = threading.Lock()
-        self._scheduled_tasks = set()  # スケジュールされたタスクを追跡
+        self._scheduled_tasks = set()
 
         self.use_punctuation: bool = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
         self.use_comma: bool = self.use_punctuation
@@ -51,7 +50,6 @@ class RecordingController:
         self._cleanup_temp_files()
 
     def _is_ui_valid(self) -> bool:
-        """UIが有効かどうかを安全に確認"""
         try:
             return (self.master is not None and
                     hasattr(self.master, 'winfo_exists') and
@@ -62,9 +60,8 @@ class RecordingController:
             return False
 
     def _schedule_ui_task(self, delay: int, callback: Callable, *args) -> Optional[str]:
-        """UIタスクを安全にスケジュール"""
         if not self._is_ui_valid():
-            logging.warning("UIが無効なため、タスクをスケジュールできません")
+            logging.warning("UIが無効でタスクをスケジュールできません")
             return None
 
         try:
@@ -77,30 +74,26 @@ class RecordingController:
             return None
 
     def _safe_ui_task_wrapper(self, callback: Callable, *args):
-        """UIタスクの安全な実行ラッパー"""
         task_id = None
         try:
-            # 現在のタスクIDを特定（Tkinterの内部実装に依存するため、できる範囲で）
             with self._ui_lock:
-                # スケジュールされたタスクから削除（正確なIDが取得できないため、古いタスクをクリア）
                 self._scheduled_tasks.clear()
 
             if self._is_ui_valid():
                 callback(*args)
             else:
-                logging.warning("UIが無効なため、タスクを実行できません")
+                logging.warning("UIが無効でタスクを実行できません")
         except Exception as e:
             logging.error(f"UIタスク実行中にエラー: {str(e)}")
 
     def _cancel_scheduled_tasks(self):
-        """スケジュールされたタスクをキャンセル"""
         with self._ui_lock:
             for task_id in self._scheduled_tasks:
                 try:
                     if self._is_ui_valid():
                         self.master.after_cancel(task_id)
                 except Exception as e:
-                    logging.debug(f"タスクキャンセル中にエラー（無視）: {str(e)}")
+                    logging.debug(f"タスクキャンセル中にエラー: {str(e)}")
             self._scheduled_tasks.clear()
 
     def _cleanup_temp_files(self):
@@ -241,7 +234,7 @@ class RecordingController:
                     self.show_notification("自動停止", "あと5秒で音声入力を停止します")
                     self.five_second_notification_shown = True
         except Exception as e:
-            logging.error(f"5秒通知表示中にエラー: {str(e)}")
+            logging.error(f"通知表示中にエラー: {str(e)}")
 
     def handle_audio_file(self, event):
         try:
@@ -303,7 +296,6 @@ class RecordingController:
                 logging.info("処理がキャンセルされました")
                 return
 
-            # より安全なUI更新スケジュール
             self._schedule_ui_task(0, self._safe_ui_update, transcription)
 
         except Exception as e:
@@ -337,7 +329,6 @@ class RecordingController:
 
     def copy_and_paste(self, text: str):
         try:
-            # テキスト処理を別スレッドで実行してUIをブロックしない
             threading.Thread(
                 target=self._safe_copy_and_paste,
                 args=(text,),
@@ -347,19 +338,15 @@ class RecordingController:
             logging.error(f"コピー&ペースト開始中にエラー: {str(e)}")
 
     def _safe_copy_and_paste(self, text: str):
-        """安全なコピー&ペースト実行"""
         try:
             copy_and_paste_transcription(text, self.replacements, self.config)
         except Exception as e:
             logging.error(f"コピー&ペースト実行中にエラー: {str(e)}")
-            # エラーが発生した場合もUIに通知
             self._schedule_ui_task(0, self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
 
     def cleanup(self):
         try:
             self.cancel_processing = True
-
-            # スケジュールされたタスクをキャンセル
             self._cancel_scheduled_tasks()
 
             if self.recorder.is_recording:

@@ -75,7 +75,7 @@ class UIComponents:
 
         self.replace_button = tk.Button(
             self.master,
-            text='テキスト置換登録',
+            text='置換テキスト登録',
             command=self.open_replacements_editor,
             width=15
         )
