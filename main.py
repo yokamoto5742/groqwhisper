@@ -125,10 +125,50 @@ App: {'初期化済み' if app else '未初期化'}
 
     finally:
         try:
-            if app:
-                app.cleanup()
+            # VoiceInputManagerの適切なクリーンアップ呼び出し
+            if app and hasattr(app, 'close_application'):
+                logging.info("最終クリーンアップを実行します")
+                app.close_application()
+            elif app:
+                logging.warning("close_applicationメソッドが見つかりません。代替クリーンアップを実行します")
+                # 代替クリーンアップ
+                _emergency_cleanup(app)
         except Exception as cleanup_error:
             logging.error(f"最終クリーンアップ中にエラー: {str(cleanup_error)}")
+            logging.debug(f"クリーンアップエラー詳細: {traceback.format_exc()}")
+
+
+def _emergency_cleanup(app):
+    """緊急時のクリーンアップ処理"""
+    try:
+        logging.info("緊急クリーンアップを開始します")
+
+        # 各コンポーネントを個別にクリーンアップ
+        cleanup_items = [
+            ('recording_controller', getattr(app, 'recording_controller', None)),
+            ('keyboard_handler', getattr(app, 'keyboard_handler', None)),
+            ('notification_manager', getattr(app, 'notification_manager', None))
+        ]
+
+        for name, component in cleanup_items:
+            if component and hasattr(component, 'cleanup'):
+                try:
+                    component.cleanup()
+                    logging.info(f"緊急クリーンアップ完了: {name}")
+                except Exception as e:
+                    logging.error(f"緊急クリーンアップ失敗 ({name}): {str(e)}")
+
+        # UIの終了処理
+        if hasattr(app, 'master') and app.master:
+            try:
+                app.master.quit()
+                app.master.destroy()
+                logging.info("UI緊急終了完了")
+            except Exception as e:
+                logging.error(f"UI緊急終了中にエラー: {str(e)}")
+
+    except Exception as e:
+        logging.critical(f"緊急クリーンアップ中に重大なエラー: {str(e)}")
 
 
 def _show_error_dialog(message: str, title: str = "エラー"):
