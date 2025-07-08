@@ -1,85 +1,174 @@
-import configparser
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 from logging.handlers import TimedRotatingFileHandler
 
-
-def load_config() -> configparser.ConfigParser:
-    config = configparser.ConfigParser()
-    config_path = os.path.join(os.path.dirname(__file__), 'config.ini')
-    config.read(config_path)
-    return config
+from utils.config_manager import load_config, get_config_value
 
 
-def setup_logging(config: configparser.ConfigParser):
-    log_directory = os.path.join(os.path.dirname(__file__), config.get('LOGGING', 'log_directory', fallback='logs'))
-    log_retention_days = config.getint('LOGGING', 'log_retention_days', fallback=7)
+def setup_logging(config=None):
+    """ログ設定を初期化する"""
+    if config is None:
+        config = load_config()
 
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
+    try:
+        # 設定値の取得（デフォルト値付き）
+        log_directory = get_config_value(config, 'LOGGING', 'log_directory', 'logs')
+        log_retention_days = get_config_value(config, 'LOGGING', 'log_retention_days', 7)
+        project_name = get_config_value(config, 'LOGGING', 'project_name', 'groqwhisper')
+        log_level = get_config_value(config, 'LOGGING', 'log_level', 'INFO')
 
-    parent_dir_name = os.path.basename(os.path.dirname(os.path.dirname(log_directory)))
-    log_file = os.path.join(log_directory, f'{parent_dir_name}.log')
+        # ログディレクトリの絶対パス取得
+        if not os.path.isabs(log_directory):
+            utils_dir = os.path.dirname(__file__)
+            log_directory = os.path.join(utils_dir, log_directory)
 
-    file_handler = TimedRotatingFileHandler(filename=log_file, when='midnight', backupCount=log_retention_days,
-                                            encoding='utf-8')
-    file_handler.suffix = "%Y-%m-%d.log"
+        # ログディレクトリの作成
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
 
-    checkpoint_log_file = os.path.join(log_directory, f'{parent_dir_name}_checkpoint.log')
-    checkpoint_handler = TimedRotatingFileHandler(filename=checkpoint_log_file, when='midnight',
-                                                  backupCount=log_retention_days, encoding='utf-8')
-    checkpoint_handler.suffix = "%Y-%m-%d.log"
+        # メインログファイルのパス
+        log_file = os.path.join(log_directory, f'{project_name}.log')
 
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    checkpoint_handler.setFormatter(formatter)
+        # ファイルハンドラーの設定
+        file_handler = TimedRotatingFileHandler(
+            filename=log_file,
+            when='midnight',
+            backupCount=log_retention_days,
+            encoding='utf-8'
+        )
+        file_handler.suffix = "%Y-%m-%d.log"
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(file_handler)
+        # フォーマッターの設定
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
 
-    checkpoint_logger = logging.getLogger('checkpoint')
-    checkpoint_logger.setLevel(logging.INFO)
-    checkpoint_logger.addHandler(checkpoint_handler)
-    checkpoint_logger.propagate = False  # ルートロガーに伝播しない
+        # ルートロガーの設定
+        root_logger = logging.getLogger()
 
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.WARNING)  # WARNING以上のみコンソール出力
-    root_logger.addHandler(console_handler)
+        # ログレベルの設定
+        try:
+            level = getattr(logging, log_level.upper())
+            root_logger.setLevel(level)
+        except AttributeError:
+            root_logger.setLevel(logging.INFO)
+            logging.warning(f"無効なログレベル '{log_level}' が指定されました。INFOを使用します。")
 
-    cleanup_old_logs(log_directory, log_retention_days)
+        root_logger.addHandler(file_handler)
 
+        # コンソールハンドラーの設定
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(logging.WARNING)  # WARNING以上のみコンソール出力
+        root_logger.addHandler(console_handler)
 
-def cleanup_old_logs(log_directory: str, retention_days: int):
-    now = datetime.now()
-    parent_dir_name = os.path.basename(os.path.dirname(os.path.dirname(log_directory)))
+        # 古いログファイルのクリーンアップ
+        cleanup_old_logs(log_directory, log_retention_days, project_name)
 
-    main_log_file = f'{parent_dir_name}.log'
-    checkpoint_log_file = f'{parent_dir_name}_checkpoint.log'
+        logging.info(f"ログシステムが初期化されました: {log_file}")
 
-    for filename in os.listdir(log_directory):
-        if filename.endswith('.log') and filename not in [main_log_file, checkpoint_log_file]:
-            file_path = os.path.join(log_directory, filename)
-            try:
-                file_modification_time = datetime.fromtimestamp(os.path.getmtime(file_path))
-                if now - file_modification_time > timedelta(days=retention_days):
-                    os.remove(file_path)
-                    logging.info(f"古いログファイルを削除しました: {filename}")
-            except OSError as e:
-                logging.error(f"ログファイルの削除中にエラーが発生しました {filename}: {str(e)}")
+    except PermissionError as e:
+        raise PermissionError(f"ログディレクトリの作成権限がありません: {e}")
+    except Exception as e:
+        raise Exception(f"ログ設定の初期化中にエラーが発生しました: {e}")
 
 
-def setup_debug_logging():
-    debug_logger = logging.getLogger('debug')
-    debug_logger.setLevel(logging.DEBUG)
+def cleanup_old_logs(log_directory: str, retention_days: int, project_name: str):
+    """古いログファイルを削除する"""
+    try:
+        now = datetime.now()
+        main_log_file = f'{project_name}.log'
 
-    debug_handler = logging.FileHandler('debug.log', encoding='utf-8')
-    debug_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s')
-    debug_handler.setFormatter(debug_formatter)
-    debug_logger.addHandler(debug_handler)
-    debug_logger.propagate = False
+        # ローテートされたログファイルのパターン（例: groqwhisper.2024-01-01.log）
+        rotated_log_pattern = rf'{re.escape(project_name)}\.\d{{4}}-\d{{2}}-\d{{2}}\.log$'
 
-    return debug_logger
+        deleted_count = 0
+        for filename in os.listdir(log_directory):
+            if filename.endswith('.log') and filename != main_log_file:
+                # ローテートされたログファイルかどうかを確認
+                if re.match(rotated_log_pattern, filename):
+                    file_path = os.path.join(log_directory, filename)
+                    try:
+                        file_modification_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                        if now - file_modification_time > timedelta(days=retention_days):
+                            os.remove(file_path)
+                            logging.info(f"古いログファイルを削除しました: {filename}")
+                            deleted_count += 1
+                    except OSError as e:
+                        logging.error(f"ログファイルの削除中にエラーが発生しました {filename}: {str(e)}")
+
+        if deleted_count > 0:
+            logging.info(f"合計 {deleted_count} 個の古いログファイルを削除しました")
+
+    except Exception as e:
+        logging.error(f"ログクリーンアップ処理中にエラーが発生しました: {str(e)}")
+
+
+def setup_debug_logging(config=None):
+    """デバッグログ設定を初期化する"""
+    if config is None:
+        config = load_config()
+
+    try:
+        # デバッグモードの確認
+        debug_mode = get_config_value(config, 'LOGGING', 'debug_mode', False)
+
+        if not debug_mode:
+            return None
+
+        # ログディレクトリの取得
+        log_directory = get_config_value(config, 'LOGGING', 'log_directory', 'logs')
+        if not os.path.isabs(log_directory):
+            utils_dir = os.path.dirname(__file__)
+            log_directory = os.path.join(utils_dir, log_directory)
+
+        # デバッグロガーの設定
+        debug_logger = logging.getLogger('debug')
+        debug_logger.setLevel(logging.DEBUG)
+
+        # デバッグログファイルのパス
+        debug_log_path = os.path.join(log_directory, 'debug.log')
+        debug_handler = logging.FileHandler(debug_log_path, encoding='utf-8')
+        debug_formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+        )
+        debug_handler.setFormatter(debug_formatter)
+        debug_logger.addHandler(debug_handler)
+        debug_logger.propagate = False
+
+        logging.info(f"デバッグログが有効化されました: {debug_log_path}")
+        return debug_logger
+
+    except Exception as e:
+        logging.error(f"デバッグログ設定中にエラーが発生しました: {str(e)}")
+        return None
+
+
+def get_log_info(config=None):
+    """現在のログ設定情報を取得する"""
+    if config is None:
+        config = load_config()
+
+    try:
+        log_directory = get_config_value(config, 'LOGGING', 'log_directory', 'logs')
+        if not os.path.isabs(log_directory):
+            utils_dir = os.path.dirname(__file__)
+            log_directory = os.path.join(utils_dir, log_directory)
+
+        project_name = get_config_value(config, 'LOGGING', 'project_name', 'groqwhisper')
+        log_retention_days = get_config_value(config, 'LOGGING', 'log_retention_days', 7)
+        debug_mode = get_config_value(config, 'LOGGING', 'debug_mode', False)
+
+        return {
+            'log_directory': log_directory,
+            'project_name': project_name,
+            'log_retention_days': log_retention_days,
+            'debug_mode': debug_mode,
+            'main_log_file': os.path.join(log_directory, f'{project_name}.log'),
+            'debug_log_file': os.path.join(log_directory, 'debug.log') if debug_mode else None
+        }
+
+    except Exception as e:
+        logging.error(f"ログ情報取得中にエラーが発生しました: {str(e)}")
+        return None
