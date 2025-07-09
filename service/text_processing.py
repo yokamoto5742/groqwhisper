@@ -90,12 +90,12 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
 
 def safe_clipboard_copy(text: str) -> bool:
     with _clipboard_lock:
-        max_retries = 3
+        max_retries = 1
         for attempt in range(max_retries):
             try:
                 pyperclip.copy(text)
 
-                time.sleep(0.05)  # 短い待機
+                time.sleep(0.1)  # 短い待機
                 copied_text = pyperclip.paste()
                 if copied_text == text:
                     logging.info("クリップボードコピー完了")
