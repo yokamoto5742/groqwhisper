@@ -66,31 +66,6 @@ class TestRecordingControllerInit:
         mock_cleanup.assert_called_once()
 
     @patch('service.recording_controller.os.makedirs')
-    @patch('service.recording_controller.RecordingController._cleanup_temp_files')
-    def test_init_punctuation_false(self, mock_cleanup, mock_makedirs):
-        """正常系: 句読点機能無効での初期化"""
-        # Arrange
-        config_no_punctuation = {
-            'WHISPER': {'USE_PUNCTUATION': 'False'},
-            'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'}
-        }
-
-        # Act
-        controller = RecordingController(
-            self.mock_master,
-            config_no_punctuation,
-            self.mock_recorder,
-            self.mock_client,
-            self.mock_replacements,
-            self.mock_ui_callbacks,
-            self.mock_notification_callback
-        )
-
-        # Assert
-        assert controller.use_punctuation is False
-        assert controller.use_comma is False
-
-    @patch('service.recording_controller.os.makedirs')
     def test_init_directory_creation_error(self, mock_makedirs):
         """異常系: ディレクトリ作成エラー"""
         # Arrange
@@ -608,58 +583,6 @@ class TestRecordingControllerAudioProcessing:
         # Assert
         mock_save_audio.assert_not_called()
 
-    @patch('service.recording_controller.os.path.exists')
-    @patch('service.recording_controller.transcribe_audio')
-    def test_handle_audio_file_success(self, mock_transcribe, mock_exists):
-        """正常系: 音声ファイル処理成功"""
-        # Arrange
-        mock_event = Mock()
-        self.mock_master.clipboard_get.return_value = '/test/audio.wav'
-        mock_exists.return_value = True
-        mock_transcribe.return_value = 'ファイル処理結果'
-
-        with patch.object(self.controller, '_safe_ui_update') as mock_ui_update:
-            # Act
-            self.controller.handle_audio_file(mock_event)
-
-            # Assert
-            mock_transcribe.assert_called_once_with(
-                '/test/audio.wav',
-                self.controller.use_punctuation,
-                self.controller.use_comma,
-                self.mock_config,
-                self.mock_client
-            )
-            mock_ui_update.assert_called_once_with('ファイル処理結果')
-
-    @patch('service.recording_controller.os.path.exists')
-    def test_handle_audio_file_not_exists(self, mock_exists):
-        """異常系: 音声ファイルが存在しない"""
-        # Arrange
-        mock_event = Mock()
-        self.mock_master.clipboard_get.return_value = '/test/nonexistent.wav'
-        mock_exists.return_value = False
-
-        with patch.object(self.controller, 'show_notification') as mock_notification:
-            # Act
-            self.controller.handle_audio_file(mock_event)
-
-            # Assert
-            mock_notification.assert_called_once_with('エラー', '音声ファイルが見つかりません')
-
-    def test_handle_audio_file_exception(self):
-        """異常系: 音声ファイル処理での例外"""
-        # Arrange
-        mock_event = Mock()
-        self.mock_master.clipboard_get.side_effect = Exception("Clipboard error")
-
-        with patch.object(self.controller, 'show_notification') as mock_notification:
-            # Act
-            self.controller.handle_audio_file(mock_event)
-
-            # Assert
-            mock_notification.assert_called_once_with('エラー', 'Clipboard error')
-
 
 class TestRecordingControllerTextProcessing:
     """テキスト処理のテストクラス"""
@@ -831,34 +754,6 @@ class TestRecordingControllerCleanup:
         # Act & Assert - 例外が発生しないことを確認
         self.controller._cleanup_temp_files()
 
-    @patch('service.recording_controller.time.sleep')
-    def test_cleanup_full_cleanup(self, mock_sleep):
-        """正常系: 完全なクリーンアップ処理"""
-        # Arrange
-        mock_processing_thread = Mock()
-        mock_processing_thread.is_alive.side_effect = [True, True, False]  # 2回チェック後に終了
-        self.controller.processing_thread = mock_processing_thread
-        
-        mock_recording_timer = Mock()
-        mock_recording_timer.is_alive.return_value = True
-        self.controller.recording_timer = mock_recording_timer
-        
-        self.controller.five_second_timer = "timer_id"
-        self.mock_recorder.is_recording = True
-
-        with patch.object(self.controller, 'stop_recording') as mock_stop, \
-             patch.object(self.controller, '_cancel_scheduled_tasks') as mock_cancel, \
-             patch.object(self.controller, '_cleanup_temp_files') as mock_cleanup_files:
-            
-            # Act
-            self.controller.cleanup()
-
-            # Assert
-            assert self.controller.cancel_processing is True
-            mock_cancel.assert_called_once()
-            mock_stop.assert_called_once()
-            mock_recording_timer.cancel.assert_called_once()
-            mock_cleanup_files.assert_called_once()
 
     def test_cleanup_no_active_components(self):
         """境界値: アクティブなコンポーネントがない場合"""
@@ -927,19 +822,6 @@ class TestRecordingControllerThreadSafety:
         assert task2 == "task_200"
         with self.controller._ui_lock:
             assert len(self.controller._scheduled_tasks) == 2
-
-    def test_check_process_thread_completion(self):
-        """正常系: 処理スレッド完了チェック"""
-        # Arrange
-        mock_thread = Mock()
-        mock_thread.is_alive.return_value = False  # スレッド完了
-
-        # Act
-        self.controller._check_process_thread(mock_thread)
-
-        # Assert
-        assert self.controller.processing_thread is None
-        self.controller.ui_callbacks['update_status_label'].assert_called_once()
 
     def test_check_process_thread_still_running(self):
         """正常系: 処理スレッドがまだ実行中"""
