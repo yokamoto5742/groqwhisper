@@ -8,6 +8,7 @@ from typing import Dict
 import pyperclip
 
 from service.safe_paste_sendinput import safe_paste_text, safe_clipboard_copy, is_paste_available
+from utils.config_manager import get_config_value
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,6 @@ def copy_and_paste_transcription(
         replacements: Dict[str, str],
         config: Dict[str, Dict[str, str]]
 ):
-    """管理者権限不要のコピー&ペースト処理（pyAutoGUI完全削除版）"""
     if not text:
         logging.warning("空のテキスト")
         return
@@ -108,7 +108,7 @@ def copy_and_paste_transcription(
         if not safe_clipboard_copy(replaced_text):
             raise Exception("クリップボードへのコピーに失敗しました")
 
-        paste_delay = config['CLIPBOARD'].get('PASTE_DELAY')
+        paste_delay = get_config_value(config, 'CLIPBOARD', 'paste_delay', 0.2)
 
         def delayed_paste():
             try:
