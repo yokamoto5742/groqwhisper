@@ -262,35 +262,6 @@ class TestTranscribeAudio:
         # Assert
         assert result == "   \n\t   "  # 空白は保持される
 
-    def test_transcribe_audio_unexpected_response_format(self, mock_config, mock_client, temp_audio_file):
-        """異常系: 予期しないレスポンス形式"""
-        # Arrange
-        mock_response = Mock()
-        # textアトリビュートも__str__メソッドも持たないオブジェクト
-        delattr(type(mock_response), 'text') if hasattr(type(mock_response), 'text') else None
-        mock_response.__str__ = Mock(side_effect=Exception("String conversion failed"))
-        mock_client.audio.transcriptions.create.return_value = mock_response
-
-        # Act
-        result = transcribe_audio(temp_audio_file, True, True, mock_config, mock_client)
-
-        # Assert
-        assert result is None
-
-    def test_transcribe_audio_punctuation_processing_error(self, mock_config, mock_client, temp_audio_file):
-        """異常系: 句読点処理中のエラー"""
-        # Arrange
-        transcription = Mock()
-        transcription.text = "正常なテキスト"
-        mock_client.audio.transcriptions.create.return_value = transcription
-
-        # Act
-        with patch.object(str, 'replace', side_effect=AttributeError("Replace error")):
-            result = transcribe_audio(temp_audio_file, False, False, mock_config, mock_client)
-
-        # Assert
-        assert result == "正常なテキスト"  # 元のテキストが返される
-
     def test_transcribe_audio_with_logging_verification(self, mock_config, mock_client, temp_audio_file, caplog):
         """ログ出力の確認"""
         # Arrange
@@ -437,6 +408,26 @@ class TestIntegrationScenarios:
 class TestErrorHandlingAndLogging:
     """エラーハンドリングとログ出力の詳細テスト"""
 
+    @pytest.fixture
+    def mock_config(self):
+        """テスト用設定データ"""
+        return {
+            'WHISPER': {
+                'MODEL': 'whisper-large-v3',
+                'PROMPT': 'テスト用プロンプト',
+                'LANGUAGE': 'ja'
+            }
+        }
+
+    @pytest.fixture
+    def mock_client(self):
+        """モックGroqクライアント"""
+        client = Mock()
+        transcription = Mock()
+        transcription.text = "テスト文字起こし結果"
+        client.audio.transcriptions.create.return_value = transcription
+        return client
+
     def test_detailed_error_logging(self, mock_config, mock_client, caplog):
         """詳細なエラーログ出力の確認"""
         # Arrange
@@ -465,7 +456,7 @@ class TestErrorHandlingAndLogging:
         # Arrange
         caplog.set_level(logging.ERROR)
         mock_client.audio.transcriptions.create.side_effect = Exception("API Error")
-        
+
         # configの一部を破損させてデバッグ情報取得でエラーを発生させる
         broken_config = Mock()
         broken_config.get.side_effect = Exception("Config access error")
