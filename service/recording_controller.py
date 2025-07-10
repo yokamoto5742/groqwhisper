@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional
 from external_service.groq_api import transcribe_audio
 from service.audio_recorder import save_audio
 from service.text_processing import copy_and_paste_transcription
+from utils.config_manager import get_config_value
 
 
 class RecordingController:
@@ -41,12 +42,11 @@ class RecordingController:
         self._ui_lock = threading.Lock()
         self._scheduled_tasks = set()
 
-        self.use_punctuation: bool = config['WHISPER'].getboolean('USE_PUNCTUATION', True)
+        self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
         self.use_comma: bool = self.use_punctuation
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
-        os.makedirs(self.temp_dir, exist_ok=True)
         self._cleanup_temp_files()
 
     def _is_ui_valid(self) -> bool:
