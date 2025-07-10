@@ -24,6 +24,8 @@ class AudioRecorder:
         self.logger = logging.getLogger(__name__)
 
     def start_recording(self):
+        self.is_recording = True
+        self.frames = []
         try:
             self.p = pyaudio.PyAudio()
             self.stream = self.p.open(
@@ -33,8 +35,6 @@ class AudioRecorder:
                 input=True,
                 frames_per_buffer=self.chunk,
             )
-            self.is_recording = True
-            self.frames = []
             self.logger.info("音声入力を開始しました。")
         except Exception as e:
             self.logger.error(f"音声入力の開始中に予期せぬエラーが発生しました: {e}")
@@ -45,17 +45,23 @@ class AudioRecorder:
             if self.stream:
                 self.stream.stop_stream()
                 self.stream.close()
-            if self.p:
-                self.p.terminate()
-            self.logger.info("音声入力を停止しました。")
         except Exception as e:
             self.logger.error(f"音声入力の停止中に予期せぬエラーが発生しました: {e}")
 
+        try:
+            if self.p:
+                self.p.terminate()
+        except Exception as e:
+            self.logger.error(f"PyAudio終了中に予期せぬエラーが発生しました: {e}")
+
+        self.logger.info("音声入力を停止しました。")
         return self.frames, self.sample_rate
 
     def record(self):
         while self.is_recording:
             try:
+                if self.stream is None:
+                    raise AttributeError("ストリームが初期化されていません")
                 data = self.stream.read(self.chunk)
                 self.frames.append(data)
             except Exception as e:

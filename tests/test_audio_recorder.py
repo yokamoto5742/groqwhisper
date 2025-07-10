@@ -4,6 +4,7 @@ import threading
 import time
 from unittest.mock import Mock, patch
 
+import pyaudio
 import pytest
 
 from service.audio_recorder import AudioRecorder, save_audio
@@ -132,7 +133,7 @@ class TestAudioRecorderStartRecording:
         
         # ストリーム開始の確認
         mock_pyaudio_instance.open.assert_called_once_with(
-            format=16,  # pyaudio.paInt16の値
+            format=pyaudio.paInt16,  # ← 直接定数を使用
             channels=1,
             rate=16000,
             input=True,
