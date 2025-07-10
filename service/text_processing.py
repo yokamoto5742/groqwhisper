@@ -5,8 +5,10 @@ import threading
 import time
 from typing import Dict
 
-import pyautogui
 import pyperclip
+
+# 管理者権限不要のペースト機能をインポート
+from service.safe_paste_sendinput import safe_paste_text_no_admin, safe_clipboard_copy, is_paste_available
 
 logger = logging.getLogger(__name__)
 
@@ -88,55 +90,31 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
         return text
 
 
-def safe_clipboard_copy(text: str) -> bool:
-    with _clipboard_lock:
-        max_retries = 1
+def safe_paste_text() -> bool:
+    """管理者権限不要の安全な貼り付け（pyAutoGUI完全削除版）"""
+    with _paste_lock:
+        # 貼り付け機能の利用可能性チェック
+        if not is_paste_available():
+            logging.error("貼り付け機能が利用できません")
+            return False
+
+        # 管理者権限不要の貼り付け実行
+        max_retries = 2
         for attempt in range(max_retries):
             try:
-                pyperclip.copy(text)
-
-                time.sleep(0.1)  # 短い待機
-                copied_text = pyperclip.paste()
-                if copied_text == text:
-                    logging.info("クリップボードコピー完了")
+                if safe_paste_text_no_admin():
+                    logging.info("管理者権限不要貼り付け完了")
                     return True
                 else:
-                    logging.warning(f"クリップボードコピー検証失敗 (試行 {attempt + 1}/{max_retries})")
+                    logging.warning(f"貼り付け失敗 (試行 {attempt + 1}/{max_retries})")
 
             except Exception as e:
-                logging.error(f"クリップボードコピー中にエラー (試行 {attempt + 1}/{max_retries}): {str(e)}")
+                logging.error(f"貼り付け中にエラー (試行 {attempt + 1}/{max_retries}): {str(e)}")
 
             if attempt < max_retries - 1:
-                time.sleep(0.1 * (attempt + 1))  # 指数バックオフ
+                time.sleep(0.2)  # 短い待機
 
-        logging.error("クリップボードコピーが最大試行回数後も失敗しました")
-        return False
-
-
-def safe_paste_text() -> bool:
-    with _paste_lock:
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                pyautogui.FAILSAFE = False
-                pyautogui.PAUSE = 0.01  # 短い間隔
-                pyautogui.hotkey('ctrl', 'v')
-                logging.info("ペースト実行完了")
-                return True
-
-            except pyautogui.FailSafeException:
-                logging.warning(f"PyAutoGUIフェールセーフが作動 (試行 {attempt + 1}/{max_retries})")
-
-            except Exception as e:
-                logging.error(f"ペースト実行中にエラー (試行 {attempt + 1}/{max_retries}): {str(e)}")
-
-            finally:
-                pyautogui.FAILSAFE = True  # フェールセーフを再有効化
-
-            if attempt < max_retries - 1:
-                time.sleep(0.1 * (attempt + 1))  # 指数バックオフ
-
-        logging.error("ペースト実行が最大試行回数後も失敗しました")
+        logging.error("すべての貼り付け試行が失敗しました")
         return False
 
 
@@ -145,6 +123,7 @@ def copy_and_paste_transcription(
         replacements: Dict[str, str],
         config: Dict[str, Dict[str, str]]
 ):
+    """管理者権限不要のコピー&ペースト処理（pyAutoGUI完全削除版）"""
     if not text:
         logging.warning("空のテキスト")
         return
@@ -155,21 +134,27 @@ def copy_and_paste_transcription(
             logging.error("テキスト置換結果が空です")
             return
 
+        # クリップボードにコピー
         if not safe_clipboard_copy(replaced_text):
             raise Exception("クリップボードへのコピーに失敗しました")
 
         try:
-            paste_delay = float(config['CLIPBOARD'].get('PASTE_DELAY', 0.2))
+            paste_delay_str = config['CLIPBOARD'].get('PASTE_DELAY', '0.2')
+            # コメントが含まれている場合は最初の部分のみ使用
+            paste_delay_clean = paste_delay_str.split('#')[0].split(';')[0].strip()
+            paste_delay = float(paste_delay_clean)
             paste_delay = max(0.05, min(paste_delay, 1.0))
-        except (ValueError, KeyError):
-            paste_delay = 0.1
-            logging.warning("PASTE_DELAY設定が無効です。デフォルト値を使用します")
+            logging.debug(f"PASTE_DELAY設定値: {paste_delay}")
+        except (ValueError, KeyError, AttributeError) as e:
+            paste_delay = 0.2
+            logging.warning(
+                f"PASTE_DELAY設定が無効です ('{config.get('CLIPBOARD', {}).get('PASTE_DELAY', 'None')}'): {str(e)}。デフォルト値{paste_delay}を使用します")
 
         def delayed_paste():
             try:
                 time.sleep(paste_delay)
                 if not safe_paste_text():
-                    logging.error("ペースト実行に失敗しました")
+                    logging.error("管理者権限不要貼り付け実行に失敗しました")
             except Exception as paste_error:
                 logging.error(f"遅延ペースト中にエラー: {str(paste_error)}", exc_info=True)
 
@@ -182,6 +167,7 @@ def copy_and_paste_transcription(
 
 
 def emergency_clipboard_recovery():
+    """クリップボード復旧機能"""
     try:
         with _clipboard_lock:
             pyperclip.copy("")
@@ -204,10 +190,15 @@ def emergency_clipboard_recovery():
 
 
 def _initialize_module():
+    """モジュール初期化処理（pyAutoGUI完全削除版）"""
     try:
-        pyautogui.PAUSE = 0.01
-        pyautogui.FAILSAFE = True
+        # 貼り付け機能利用可能性をチェック
+        if is_paste_available():
+            logging.info("管理者権限不要貼り付け機能初期化完了")
+        else:
+            logging.error("貼り付け機能初期化失敗")
 
+        # クリップボード初期化テスト
         test_result = emergency_clipboard_recovery()
         if not test_result:
             logging.warning("クリップボード初期化テストに失敗しました")
@@ -216,4 +207,5 @@ def _initialize_module():
         logging.error(f"モジュール初期化中にエラー: {str(e)}")
 
 
+# モジュール初期化実行
 _initialize_module()
