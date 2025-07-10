@@ -1,2 +1,13 @@
 [tool.pytest.ini_options]
-addopts = "--cov=groqwhisper --cov-report=html"
+addopts = [
+    "--cov",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--cov-config=.coveragerc",
+    "-v"
+]
+
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
