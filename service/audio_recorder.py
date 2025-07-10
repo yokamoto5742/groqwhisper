@@ -64,6 +64,9 @@ class AudioRecorder:
                     raise AttributeError("ストリームが初期化されていません")
                 data = self.stream.read(self.chunk)
                 self.frames.append(data)
+            except AttributeError:
+                self.logger.error(f"音声入力中にストリーム初期化エラーが発生しました")
+                raise
             except Exception as e:
                 self.logger.error(f"音声入力中に予期せぬエラーが発生しました: {e}")
                 self.is_recording = False
