@@ -1,10 +1,11 @@
 [tool.pytest.ini_options]
+# カバレッジレポートを作成するときはコメントアウトを解除
 addopts = [
-    "--cov",
-    "--cov-report=html",
-    "--cov-report=term-missing",
-    "--cov-config=.coveragerc",
-    "-v"
+#    "--cov",
+#    "--cov-report=html",
+#    "--cov-report=term-missing",
+#    "--cov-config=.coveragerc",
+#    "-v"
 ]
 
 testpaths = ["tests"]
