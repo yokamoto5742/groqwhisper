@@ -5,7 +5,7 @@ import tkinter as tk
 import traceback
 from tkinter import messagebox
 
-from app_window import VoiceInputManager
+from app.app_window import VoiceInputManager
 from external_service.groq_api import setup_groq_client
 from utils.config_manager import load_config
 from utils.log_rotation import setup_logging, setup_debug_logging

@@ -2,11 +2,11 @@ build/
 dist/
 logs/
 .idea/
+.serena/
 
+.env
+.coverage
 *.spec
 *.iml
-*.env
-*.log
 
-misc.xml
 error_log.txt
