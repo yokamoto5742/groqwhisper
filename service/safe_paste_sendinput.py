@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def safe_clipboard_copy(text: str) -> bool:
-    """テキストをクリップボードにコピーする"""
+    """テキストをクリップボードにコピー"""
     if not text:
         return False
 
@@ -34,7 +34,7 @@ def safe_clipboard_copy(text: str) -> bool:
 
 
 def safe_paste_text() -> bool:
-    """クリップボードの内容をCtrl+Vで貼り付ける"""
+    """クリップボードの内容をCtrl+Vで貼り付け"""
     try:
         current_text = pyperclip.paste()
         if not current_text:
@@ -51,7 +51,7 @@ def safe_paste_text() -> bool:
 
 
 def is_paste_available() -> bool:
-    """貼り付け機能が利用可能かチェックする"""
+    """貼り付け機能が利用可能かチェック"""
     try:
         # keyboardライブラリが利用可能であれば常にTrue
         return True

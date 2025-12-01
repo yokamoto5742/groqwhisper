@@ -17,7 +17,7 @@ _clipboard_lock = threading.Lock()
 
 
 def process_punctuation(text: str, use_punctuation: bool) -> str:
-    """句読点を処理する"""
+    """句読点を処理"""
     if use_punctuation:
         return text
 
