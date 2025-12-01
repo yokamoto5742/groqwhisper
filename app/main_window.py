@@ -4,7 +4,7 @@ import time
 import tkinter as tk
 from typing import Any, Dict
 
-from app.app_ui_components import UIComponents
+from app.ui_components import UIComponents
 from utils.config_manager import save_config
 from service.keyboard_handler import KeyboardHandler
 from service.notification import NotificationManager
