@@ -5,13 +5,13 @@ import tkinter as tk
 import traceback
 from tkinter import messagebox
 
+from app import __version__
 from app.app_window import VoiceInputManager
 from external_service.groq_api import setup_groq_client
-from utils.config_manager import load_config
-from utils.log_rotation import setup_logging, setup_debug_logging
 from service.audio_recorder import AudioRecorder
 from service.text_processing import load_replacements
-from version import VERSION
+from utils.config_manager import load_config
+from utils.log_rotation import setup_logging, setup_debug_logging
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
         client = setup_groq_client()
         replacements = load_replacements()
         root = tk.Tk()
-        app = VoiceInputManager(root, config, recorder, client, replacements, VERSION)
+        app = VoiceInputManager(root, config, recorder, client, replacements, __version__)
 
         def safe_close():
             try:
@@ -69,7 +69,7 @@ def main():
             detailed_error = f"""
 === GroqWhisper エラーレポート ===
 発生日時: {logging.Formatter().formatTime(logging.LogRecord('', 0, '', 0, '', (), None))}
-バージョン: {VERSION}
+バージョン: {__version__}
 エラータイプ: {type(e).__name__}
 エラーメッセージ: {str(e)}
 
