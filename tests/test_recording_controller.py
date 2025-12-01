@@ -57,7 +57,6 @@ class TestRecordingControllerInit:
         assert controller.show_notification == self.mock_notification_callback
         
         assert controller.use_punctuation is True
-        assert controller.use_comma is True
         assert controller.temp_dir == '/test/temp'
         assert controller.cleanup_minutes == 240
         assert controller.cancel_processing is False
@@ -525,7 +524,6 @@ class TestRecordingControllerAudioProcessing:
             mock_transcribe.assert_called_once_with(
                 '/test/temp/audio.wav',
                 self.controller.use_punctuation,
-                self.controller.use_comma,
                 self.mock_config,
                 self.mock_client
             )
@@ -919,7 +917,7 @@ class TestRecordingControllerIntegration:
         mock_save_audio.assert_called_once_with(test_frames, 16000, self.mock_config)
         mock_transcribe.assert_called_once_with(
             '/test/temp/audio.wav',
-            True, True,  # use_punctuation, use_comma
+            True,  # use_punctuation
             self.mock_config,
             self.mock_client
         )

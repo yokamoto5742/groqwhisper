@@ -13,7 +13,6 @@ from utils.config_manager import get_config_value
 logger = logging.getLogger(__name__)
 
 _clipboard_lock = threading.Lock()
-_paste_lock = threading.Lock()
 
 
 def get_replacements_path():
@@ -147,7 +146,7 @@ def emergency_clipboard_recovery():
         return False
 
 
-def _initialize_module():
+def initialize_text_processing():
     try:
         if is_paste_available():
             pass
@@ -160,6 +159,3 @@ def _initialize_module():
 
     except Exception as e:
         logging.error(f"モジュール初期化中にエラー: {str(e)}")
-
-
-_initialize_module()

@@ -11,7 +11,7 @@ from service.text_processing import (
     replace_text,
     copy_and_paste_transcription,
     emergency_clipboard_recovery,
-    _initialize_module
+    initialize_text_processing
 )
 
 
@@ -645,7 +645,7 @@ class TestInitializeModule:
         mock_recovery.return_value = True
 
         # Act
-        _initialize_module()
+        initialize_text_processing()
 
         # Assert
         mock_paste_available.assert_called_once()
@@ -663,7 +663,7 @@ class TestInitializeModule:
         mock_recovery.return_value = True
 
         # Act
-        _initialize_module()
+        initialize_text_processing()
 
         # Assert
         assert "貼り付け機能初期化失敗" in caplog.text
@@ -680,7 +680,7 @@ class TestInitializeModule:
         mock_recovery.return_value = False
 
         # Act
-        _initialize_module()
+        initialize_text_processing()
 
         # Assert
         assert "クリップボード初期化テストに失敗しました" in caplog.text
@@ -693,7 +693,7 @@ class TestInitializeModule:
         mock_paste_available.side_effect = Exception("初期化エラー")
 
         # Act
-        _initialize_module()
+        initialize_text_processing()
 
         # Assert
         assert "モジュール初期化中にエラー" in caplog.text

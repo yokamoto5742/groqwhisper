@@ -43,7 +43,6 @@ class RecordingController:
         self._scheduled_tasks = set()
 
         self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
-        self.use_comma: bool = self.use_punctuation
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
@@ -76,7 +75,6 @@ class RecordingController:
             return None
 
     def _safe_ui_task_wrapper(self, callback: Callable, *args):
-        task_id = None
         try:
             with self._ui_lock:
                 self._scheduled_tasks.clear()
@@ -250,7 +248,6 @@ class RecordingController:
             transcription = transcribe_audio(
                 file_path,
                 self.use_punctuation,
-                self.use_comma,
                 self.config,
                 self.client
             )
@@ -286,7 +283,6 @@ class RecordingController:
             transcription = transcribe_audio(
                 temp_audio_file,
                 self.use_punctuation,
-                self.use_comma,
                 self.config,
                 self.client
             )

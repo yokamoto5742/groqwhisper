@@ -9,7 +9,7 @@ from app import __version__
 from app.main_window import VoiceInputManager
 from external_service.groq_api import setup_groq_client
 from service.audio_recorder import AudioRecorder
-from service.text_processing import load_replacements
+from service.text_processing import initialize_text_processing, load_replacements
 from utils.config_manager import load_config
 from utils.log_rotation import setup_logging, setup_debug_logging
 
@@ -29,6 +29,8 @@ def main():
         debug_logger = setup_debug_logging()
 
         logging.info("アプリケーションを開始します")
+
+        initialize_text_processing()
 
         recorder = AudioRecorder(config)
         client = setup_groq_client()

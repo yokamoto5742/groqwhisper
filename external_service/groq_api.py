@@ -16,27 +16,75 @@ def setup_groq_client() -> Groq:
     return Groq(api_key=api_key)
 
 
-def transcribe_audio(
-        audio_file_path: str,
-        use_punctuation: bool,
-        use_comma: bool,
-        config: dict,
-        client: Groq
-) -> Optional[str]:
-    if not audio_file_path:
-        logging.warning("音声ファイルパスが未指定")
+def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
+    """音声ファイルの存在と有効性を検証する
+
+    Returns:
+        tuple[bool, Optional[str]]: (検証成功, エラーメッセージ)
+    """
+    if not file_path:
+        return False, "音声ファイルパスが未指定"
+
+    if not os.path.exists(file_path):
+        return False, f"音声ファイルが存在しません: {file_path}"
+
+    file_size = os.path.getsize(file_path)
+    if file_size == 0:
+        return False, "音声ファイルのサイズが0バイトです"
+
+    return True, None
+
+
+def convert_response_to_text(response) -> Optional[str]:
+    """APIレスポンスをテキストに変換する"""
+    if response is None:
+        logging.error("APIからのレスポンスがNoneです")
         return None
 
     try:
-        if not os.path.exists(audio_file_path):
-            logging.error(f"音声ファイルが存在しません: {audio_file_path}")
+        if isinstance(response, str):
+            return response
+        elif hasattr(response, 'text') and response.text is not None:
+            return str(response.text)
+        elif hasattr(response, '__str__'):
+            return str(response)
+        else:
+            logging.error(f"予期しないレスポンス形式: {type(response)}")
             return None
+    except Exception as e:
+        logging.error(f"レスポンス変換中の予期しないエラー: {str(e)}")
+        logging.debug(f"レスポンス変換エラー詳細: {traceback.format_exc()}")
+        return None
 
-        file_size = os.path.getsize(audio_file_path)
-        if file_size == 0:
-            logging.error("音声ファイルのサイズが0バイトです")
-            return None
 
+def process_punctuation(text: str, use_punctuation: bool) -> str:
+    """句読点を処理する"""
+    if use_punctuation:
+        return text
+
+    try:
+        result = text.replace('。', '').replace('、', '')
+        return result
+    except (AttributeError, TypeError) as e:
+        logging.error(f"句読点処理中にタイプエラー: {str(e)}")
+        return text
+    except Exception as e:
+        logging.error(f"句読点処理中に予期しないエラー: {str(e)}")
+        return text
+
+
+def transcribe_audio(
+        audio_file_path: str,
+        use_punctuation: bool,
+        config: dict,
+        client: Groq
+) -> Optional[str]:
+    is_valid, error_msg = validate_audio_file(audio_file_path)
+    if not is_valid:
+        logging.warning(error_msg) if "未指定" in error_msg else logging.error(error_msg)
+        return None
+
+    try:
         logging.info("ファイル読み込み開始")
         with open(audio_file_path, "rb") as file:
             file_content = file.read()
@@ -50,57 +98,17 @@ def transcribe_audio(
                 language=config['WHISPER']['LANGUAGE']
             )
 
-        try:
-            if transcription is None:
-                logging.error("APIからのレスポンスがNoneです")
-                return None
-
-            text_result = None
-
-            if isinstance(transcription, str):
-                text_result = transcription
-            elif hasattr(transcription, 'text') and transcription.text is not None:
-                text_result = str(transcription.text)
-            elif hasattr(transcription, '__str__'):
-                text_result = str(transcription)
-            else:
-                logging.error(f"予期しないレスポンス形式: {type(transcription)}")
-                return None
-
-            if text_result is None:
-                logging.error("文字列変換後の結果がNoneです")
-                return None
-
-        except Exception as response_error:
-            logging.error(f"レスポンス変換中の予期しないエラー: {str(response_error)}")
-            logging.debug(f"レスポンス変換エラー詳細: {traceback.format_exc()}")
+        text_result = convert_response_to_text(transcription)
+        if text_result is None:
             return None
 
-        char_count = len(text_result) if text_result else 0
-
-        if char_count == 0:
+        if len(text_result) == 0:
             logging.warning("文字起こし結果が空です")
             return ""
 
-        original_text = text_result
+        text_result = process_punctuation(text_result, use_punctuation)
 
-        try:
-            if not use_punctuation and isinstance(text_result, str):
-                text_result = text_result.replace('。', '')
-
-            if not use_comma and isinstance(text_result, str):
-                text_result = text_result.replace('、', '')
-
-        except (AttributeError, TypeError) as punctuation_error:
-            logging.error(f"句読点処理中にタイプエラー: {str(punctuation_error)}")
-            text_result = original_text
-        except Exception as punctuation_error:
-            logging.error(f"句読点処理中に予期しないエラー: {str(punctuation_error)}")
-            text_result = original_text
-
-        final_char_count = len(text_result) if text_result else 0
-        logging.info(f"文字起こし完了: {final_char_count}文字")
-
+        logging.info(f"文字起こし完了: {len(text_result)}文字")
         return text_result
 
     except FileNotFoundError as e:
@@ -124,7 +132,6 @@ def transcribe_audio(
         try:
             logging.error(f"音声ファイルパス: {audio_file_path}")
             logging.error(f"use_punctuation: {use_punctuation}")
-            logging.error(f"use_comma: {use_comma}")
             logging.error(f"設定ファイル MODEL: {config.get('WHISPER', {}).get('MODEL', 'NOT_SET')}")
             logging.error(f"設定ファイル LANGUAGE: {config.get('WHISPER', {}).get('LANGUAGE', 'NOT_SET')}")
         except Exception as debug_error:

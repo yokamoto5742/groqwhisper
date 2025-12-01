@@ -5,10 +5,10 @@ import tkinter as tk
 from typing import Any, Dict
 
 from app.ui_components import UIComponents
-from utils.config_manager import save_config
 from service.keyboard_handler import KeyboardHandler
 from service.notification import NotificationManager
 from service.recording_controller import RecordingController
+from utils.config_manager import save_config
 
 
 class VoiceInputManager:
@@ -66,22 +66,15 @@ class VoiceInputManager:
         if start_minimized:
             self.master.iconify()
 
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-
     def toggle_recording(self):
         self.recording_controller.toggle_recording()
 
     def toggle_punctuation(self):
         use_punctuation = not self.recording_controller.use_punctuation
         self.recording_controller.use_punctuation = use_punctuation
-        self.recording_controller.use_comma = use_punctuation
         self.ui_components.update_punctuation_button(use_punctuation)
         logging.info(f"現在句読点: {'あり' if use_punctuation else 'なし'}")
         self.config['FORMATTING']['USE_PUNCTUATION'] = str(use_punctuation)
-        self.config['FORMATTING']['USE_COMMA'] = str(use_punctuation)
         save_config(self.config)
 
     def close_application(self):

@@ -1,9 +1,10 @@
+import ctypes
 import logging
 import threading
 import time
-import ctypes
 from ctypes import wintypes
 from typing import Optional, Tuple
+
 import pyperclip
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,7 @@ class ClipboardPaster:
                 ("WM_PASTE", self.send_paste_message),
             ]
 
+            success = False
             for method_name, method_func in paste_methods:
                 try:
                     if method_func():
@@ -135,7 +137,6 @@ class ClipboardPaster:
                     continue
             else:
                 logging.error("すべての貼り付け方法が失敗しました")
-                success = False
 
             time.sleep(0.15)
             self.restore_clipboard_content()
@@ -151,7 +152,14 @@ class ClipboardPaster:
             return False
 
 
-clipboard_paster = ClipboardPaster()
+_clipboard_paster: Optional[ClipboardPaster] = None
+
+
+def get_clipboard_paster() -> ClipboardPaster:
+    global _clipboard_paster
+    if _clipboard_paster is None:
+        _clipboard_paster = ClipboardPaster()
+    return _clipboard_paster
 
 
 def safe_clipboard_copy(text: str) -> bool:
@@ -184,7 +192,7 @@ def safe_paste_text() -> bool:
                 logging.warning("クリップボードが空です")
                 return False
 
-            return clipboard_paster.paste_text(current_text)
+            return get_clipboard_paster().paste_text(current_text)
 
         except Exception as e:
             logging.error(f"貼り付けエラー: {str(e)}")

@@ -20,7 +20,6 @@ class AudioRecorder:
 
         os.makedirs(self.temp_dir, exist_ok=True)
 
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
 
     def start_recording(self):
