@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch, mock_open, call
 import pytest
 
 from service.text_processing import (
+    process_punctuation,
     get_replacements_path,
     load_replacements,
     replace_text,
@@ -13,6 +14,115 @@ from service.text_processing import (
     emergency_clipboard_recovery,
     initialize_text_processing
 )
+
+
+class TestProcessPunctuation:
+    """句読点処理のテストクラス"""
+
+    def test_process_punctuation_with_punctuation_true(self):
+        """正常系: use_punctuation=Trueの場合、句読点をそのまま保持"""
+        # Arrange
+        text = "これは。テスト、です。"
+        use_punctuation = True
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == "これは。テスト、です。"
+        assert "。" in result
+        assert "、" in result
+
+    def test_process_punctuation_with_punctuation_false(self):
+        """正常系: use_punctuation=Falseの場合、句読点を削除"""
+        # Arrange
+        text = "これは。テスト、です。"
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == "これはテストです"
+        assert "。" not in result
+        assert "、" not in result
+
+    def test_process_punctuation_empty_text(self):
+        """境界値: 空文字列"""
+        # Arrange
+        text = ""
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == ""
+
+    def test_process_punctuation_only_punctuation(self):
+        """境界値: 句読点のみの文字列"""
+        # Arrange
+        text = "。、。、"
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == ""
+
+    def test_process_punctuation_no_punctuation(self):
+        """正常系: 句読点を含まない文字列"""
+        # Arrange
+        text = "これはテストです"
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == "これはテストです"
+
+    def test_process_punctuation_multiple_types(self):
+        """正常系: 複数の句読点を含む"""
+        # Arrange
+        text = "一つ目。二つ目、三つ目。最後、です。"
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result == "一つ目二つ目三つ目最後です"
+
+    def test_process_punctuation_none_text(self, caplog):
+        """異常系: Noneが渡された場合"""
+        # Arrange
+        caplog.set_level(logging.ERROR)
+        text = None
+        use_punctuation = False
+
+        # Act
+        result = process_punctuation(text, use_punctuation)
+
+        # Assert
+        assert result is None
+        assert "句読点処理中にタイプエラー" in caplog.text
+
+    @pytest.mark.parametrize("use_punctuation,input_text,expected", [
+        (True, "テスト。文字、起こし", "テスト。文字、起こし"),
+        (False, "テスト。文字、起こし", "テスト文字起こし"),
+        (False, "。、。、", ""),
+        (True, "", ""),
+        (False, "句読点なし", "句読点なし"),
+    ])
+    def test_process_punctuation_parametrized(self, use_punctuation, input_text, expected):
+        """パラメータ化テスト: 句読点処理の組み合わせ"""
+        # Act
+        result = process_punctuation(input_text, use_punctuation)
+
+        # Assert
+        assert result == expected
 
 
 class TestGetReplacementsPath:

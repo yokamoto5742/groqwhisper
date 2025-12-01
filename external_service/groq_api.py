@@ -57,25 +57,8 @@ def convert_response_to_text(response) -> Optional[str]:
         return None
 
 
-def process_punctuation(text: str, use_punctuation: bool) -> str:
-    """句読点を処理する"""
-    if use_punctuation:
-        return text
-
-    try:
-        result = text.replace('。', '').replace('、', '')
-        return result
-    except (AttributeError, TypeError) as e:
-        logging.error(f"句読点処理中にタイプエラー: {str(e)}")
-        return text
-    except Exception as e:
-        logging.error(f"句読点処理中に予期しないエラー: {str(e)}")
-        return text
-
-
 def transcribe_audio(
         audio_file_path: str,
-        use_punctuation: bool,
         config: dict,
         client: Groq
 ) -> Optional[str]:
@@ -106,8 +89,6 @@ def transcribe_audio(
             logging.warning("文字起こし結果が空です")
             return ""
 
-        text_result = process_punctuation(text_result, use_punctuation)
-
         logging.info(f"文字起こし完了: {len(text_result)}文字")
         return text_result
 
@@ -131,7 +112,6 @@ def transcribe_audio(
 
         try:
             logging.error(f"音声ファイルパス: {audio_file_path}")
-            logging.error(f"use_punctuation: {use_punctuation}")
             logging.error(f"設定ファイル MODEL: {config.get('WHISPER', {}).get('MODEL', 'NOT_SET')}")
             logging.error(f"設定ファイル LANGUAGE: {config.get('WHISPER', {}).get('LANGUAGE', 'NOT_SET')}")
         except Exception as debug_error:

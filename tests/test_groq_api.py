@@ -94,18 +94,15 @@ class TestTranscribeAudio:
         except OSError:
             pass
 
-    def test_transcribe_audio_success_with_punctuation(self, mock_config, mock_client, temp_audio_file):
-        """正常系: 句読点ありでの文字起こし成功"""
-        # Arrange
-        use_punctuation = True
-
+    def test_transcribe_audio_success(self, mock_config, mock_client, temp_audio_file):
+        """正常系: 文字起こし成功"""
         # Act
-        result = transcribe_audio(temp_audio_file, use_punctuation, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result == "テスト文字起こし結果"
         mock_client.audio.transcriptions.create.assert_called_once()
-        
+
         # API呼び出しパラメータの確認
         call_args = mock_client.audio.transcriptions.create.call_args
         assert call_args[1]['model'] == 'whisper-large-v3'
@@ -113,21 +110,20 @@ class TestTranscribeAudio:
         assert call_args[1]['response_format'] == "text"
         assert call_args[1]['language'] == 'ja'
 
-    def test_transcribe_audio_success_without_punctuation(self, mock_config, mock_client, temp_audio_file):
-        """正常系: 句読点なしでの文字起こし成功"""
+    def test_transcribe_audio_success_with_punctuation(self, mock_config, mock_client, temp_audio_file):
+        """正常系: 句読点を含む文字起こし成功"""
         # Arrange
-        use_punctuation = False
         transcription = Mock()
         transcription.text = "テスト。文字、起こし。結果"
         mock_client.audio.transcriptions.create.return_value = transcription
 
         # Act
-        result = transcribe_audio(temp_audio_file, use_punctuation, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
-        assert result == "テスト文字起こし結果"  # 句読点が除去される
-        assert "。" not in result
-        assert "、" not in result
+        assert result == "テスト。文字、起こし。結果"  # 句読点はそのまま
+        assert "。" in result
+        assert "、" in result
 
     def test_transcribe_audio_success_string_response(self, mock_config, mock_client, temp_audio_file):
         """正常系: 文字列レスポンスの場合"""
@@ -135,7 +131,7 @@ class TestTranscribeAudio:
         mock_client.audio.transcriptions.create.return_value = "直接文字列レスポンス"
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result == "直接文字列レスポンス"
@@ -143,7 +139,7 @@ class TestTranscribeAudio:
     def test_transcribe_audio_missing_file_path(self, mock_config, mock_client):
         """異常系: ファイルパスが未指定"""
         # Act
-        result = transcribe_audio("", True, mock_config, mock_client)
+        result = transcribe_audio("", mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -151,7 +147,7 @@ class TestTranscribeAudio:
     def test_transcribe_audio_none_file_path(self, mock_config, mock_client):
         """異常系: ファイルパスがNone"""
         # Act
-        result = transcribe_audio(None, True, mock_config, mock_client)
+        result = transcribe_audio(None, mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -159,7 +155,7 @@ class TestTranscribeAudio:
     def test_transcribe_audio_file_not_exists(self, mock_config, mock_client):
         """異常系: ファイルが存在しない"""
         # Act
-        result = transcribe_audio("/non/existent/file.wav", True, mock_config, mock_client)
+        result = transcribe_audio("/non/existent/file.wav", mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -172,7 +168,7 @@ class TestTranscribeAudio:
 
         try:
             # Act
-            result = transcribe_audio(temp_path, True, mock_config, mock_client)
+            result = transcribe_audio(temp_path, mock_config, mock_client)
 
             # Assert
             assert result is None
@@ -183,7 +179,7 @@ class TestTranscribeAudio:
     def test_transcribe_audio_permission_error(self, mock_open_func, mock_config, mock_client):
         """異常系: ファイルアクセス権限エラー"""
         # Act
-        result = transcribe_audio("protected_file.wav", True, mock_config, mock_client)
+        result = transcribe_audio("protected_file.wav", mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -192,7 +188,7 @@ class TestTranscribeAudio:
     def test_transcribe_audio_os_error(self, mock_open_func, mock_config, mock_client):
         """異常系: OS関連エラー"""
         # Act
-        result = transcribe_audio("problematic_file.wav", True, mock_config, mock_client)
+        result = transcribe_audio("problematic_file.wav", mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -203,7 +199,7 @@ class TestTranscribeAudio:
         mock_client.audio.transcriptions.create.return_value = None
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -214,7 +210,7 @@ class TestTranscribeAudio:
         mock_client.audio.transcriptions.create.side_effect = Exception("API Error")
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result is None
@@ -227,7 +223,7 @@ class TestTranscribeAudio:
         mock_client.audio.transcriptions.create.return_value = transcription
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result == ""
@@ -240,7 +236,7 @@ class TestTranscribeAudio:
         mock_client.audio.transcriptions.create.return_value = transcription
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result == "   \n\t   "  # 空白は保持される
@@ -251,35 +247,13 @@ class TestTranscribeAudio:
         caplog.set_level(logging.INFO)
 
         # Act
-        result = transcribe_audio(temp_audio_file, True, mock_config, mock_client)
+        result = transcribe_audio(temp_audio_file, mock_config, mock_client)
 
         # Assert
         assert result is not None
         assert "ファイル読み込み開始" in caplog.text
         assert "ファイル読み込み完了" in caplog.text
         assert "文字起こし完了" in caplog.text
-
-    @pytest.mark.parametrize("use_punctuation,input_text,expected", [
-        (True, "テスト。文字、起こし", "テスト。文字、起こし"),
-        (False, "テスト。文字、起こし", "テスト文字起こし"),
-        (False, "。、。、", ""),
-        (True, "", ""),
-    ])
-    def test_transcribe_audio_punctuation_combinations(
-        self, mock_config, mock_client, temp_audio_file,
-        use_punctuation, input_text, expected
-    ):
-        """パラメータ化テスト: 句読点処理の組み合わせ"""
-        # Arrange
-        transcription = Mock()
-        transcription.text = input_text
-        mock_client.audio.transcriptions.create.return_value = transcription
-
-        # Act
-        result = transcribe_audio(temp_audio_file, use_punctuation, mock_config, mock_client)
-
-        # Assert
-        assert result == expected
 
     def test_transcribe_audio_large_file_simulation(self, mock_config, mock_client):
         """大きなファイルのシミュレーション"""
@@ -296,7 +270,7 @@ class TestTranscribeAudio:
             mock_client.audio.transcriptions.create.return_value = transcription
 
             # Act
-            result = transcribe_audio(temp_path, True, mock_config, mock_client)
+            result = transcribe_audio(temp_path, mock_config, mock_client)
 
             # Assert
             assert result == "大きなファイルの文字起こし結果"
@@ -323,7 +297,7 @@ class TestTranscribeAudio:
             mock_client.audio.transcriptions.create.return_value = transcription
 
             # Act
-            result = transcribe_audio("mock_file.wav", True, mock_config, mock_client)
+            result = transcribe_audio("mock_file.wav", mock_config, mock_client)
 
             # Assert
             assert result == "モックされたファイルからの結果"
@@ -339,15 +313,15 @@ class TestIntegrationScenarios:
         # Arrange
         with patch('external_service.groq_api.load_env_variables') as mock_load_env:
             mock_load_env.return_value = {"GROQ_API_KEY": "test-key"}
-            
+
             with patch('external_service.groq_api.Groq') as mock_groq_class:
                 mock_client = Mock()
                 mock_groq_class.return_value = mock_client
-                
+
                 transcription = Mock()
                 transcription.text = "統合テスト成功"
                 mock_client.audio.transcriptions.create.return_value = transcription
-                
+
                 config = {
                     'WHISPER': {
                         'MODEL': 'whisper-large-v3',
@@ -363,7 +337,7 @@ class TestIntegrationScenarios:
                 try:
                     # Act
                     client = setup_groq_client()
-                    result = transcribe_audio(temp_path, True, config, client)
+                    result = transcribe_audio(temp_path, config, client)
 
                     # Assert
                     assert result == "統合テスト成功"
@@ -421,7 +395,7 @@ class TestErrorHandlingAndLogging:
 
         try:
             # Act
-            result = transcribe_audio(temp_path, True, mock_config, mock_client)
+            result = transcribe_audio(temp_path, mock_config, mock_client)
 
             # Assert
             assert result is None
@@ -448,7 +422,7 @@ class TestErrorHandlingAndLogging:
 
         try:
             # Act
-            result = transcribe_audio(temp_path, True, broken_config, mock_client)
+            result = transcribe_audio(temp_path, broken_config, mock_client)
 
             # Assert
             assert result is None

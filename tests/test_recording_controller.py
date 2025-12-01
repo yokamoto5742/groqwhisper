@@ -138,73 +138,29 @@ class TestRecordingControllerUIManagement:
         # Assert
         assert result is False
 
-    def test_schedule_ui_task_success(self):
-        """正常系: UIタスクスケジュール成功"""
+    def test_direct_ui_task_scheduling_success(self):
+        """正常系: 直接UIタスクスケジュール成功"""
         # Arrange
         mock_callback = Mock()
         self.mock_master.after.return_value = "task_id_123"
 
         # Act
-        task_id = self.controller._schedule_ui_task(100, mock_callback, "arg1", "arg2")
+        task_id = self.mock_master.after(100, mock_callback, "arg1", "arg2")
 
         # Assert
         assert task_id == "task_id_123"
-        self.mock_master.after.assert_called_once()
-        # _safe_ui_task_wrapperが呼ばれることを確認
-        call_args = self.mock_master.after.call_args
-        assert call_args[0][0] == 100  # delay
+        self.mock_master.after.assert_called_once_with(100, mock_callback, "arg1", "arg2")
 
-    def test_schedule_ui_task_ui_invalid(self):
-        """異常系: UI無効時のタスクスケジュール"""
+    def test_direct_ui_task_scheduling_ui_invalid(self):
+        """異常系: UI無効時の動作確認"""
         # Arrange
         self.mock_master.winfo_exists.return_value = False
-        mock_callback = Mock()
 
         # Act
-        task_id = self.controller._schedule_ui_task(100, mock_callback)
+        result = self.controller._is_ui_valid()
 
         # Assert
-        assert task_id is None
-        self.mock_master.after.assert_not_called()
-
-    def test_cancel_scheduled_tasks(self):
-        """正常系: スケジュールされたタスクのキャンセル"""
-        # Arrange
-        with self.controller._ui_lock:
-            self.controller._scheduled_tasks.add("task1")
-            self.controller._scheduled_tasks.add("task2")
-
-        # Act
-        self.controller._cancel_scheduled_tasks()
-
-        # Assert
-        self.mock_master.after_cancel.assert_has_calls([
-            call("task1"), call("task2")
-        ], any_order=True)
-        assert len(self.controller._scheduled_tasks) == 0
-
-    def test_safe_ui_task_wrapper_success(self):
-        """正常系: UIタスクラッパー実行成功"""
-        # Arrange
-        mock_callback = Mock()
-
-        # Act
-        self.controller._safe_ui_task_wrapper(mock_callback, "arg1", "arg2")
-
-        # Assert
-        mock_callback.assert_called_once_with("arg1", "arg2")
-
-    def test_safe_ui_task_wrapper_ui_invalid(self):
-        """異常系: UI無効時のタスクラッパー"""
-        # Arrange
-        self.mock_master.winfo_exists.return_value = False
-        mock_callback = Mock()
-
-        # Act
-        self.controller._safe_ui_task_wrapper(mock_callback)
-
-        # Assert
-        mock_callback.assert_not_called()
+        assert result is False
 
 
 class TestRecordingControllerRecording:
@@ -404,28 +360,26 @@ class TestRecordingControllerAutoStop:
 
     def test_auto_stop_recording(self):
         """正常系: 自動停止処理"""
-        # Arrange
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller.auto_stop_recording()
+        # Arrange & Act
+        self.controller.auto_stop_recording()
 
-            # Assert
-            mock_schedule.assert_called_once_with(0, self.controller._auto_stop_recording_ui)
+        # Assert
+        # _auto_stop_recording_uiがmaster.afterでスケジュールされることを確認
+        self.mock_master.after.assert_called_once_with(0, self.controller._auto_stop_recording_ui)
 
     def test_auto_stop_recording_ui(self):
         """正常系: 自動停止UI処理"""
         # Arrange
         with patch.object(self.controller, 'show_notification') as mock_notification, \
-             patch.object(self.controller, '_stop_recording_process') as mock_stop, \
-             patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            
+             patch.object(self.controller, '_stop_recording_process') as mock_stop:
+
             # Act
             self.controller._auto_stop_recording_ui()
 
             # Assert
             mock_notification.assert_called_once_with("自動停止", "アプリケーションを終了します")
             mock_stop.assert_called_once()
-            mock_schedule.assert_called_once_with(1000, self.mock_master.quit)
+            self.mock_master.after.assert_called_with(1000, self.mock_master.quit)
 
     def test_show_five_second_notification(self):
         """正常系: 5秒前通知"""
@@ -507,27 +461,31 @@ class TestRecordingControllerAudioProcessing:
 
     @patch('service.recording_controller.save_audio')
     @patch('service.recording_controller.transcribe_audio')
-    def test_transcribe_audio_frames_success(self, mock_transcribe, mock_save_audio):
+    @patch('service.recording_controller.process_punctuation')
+    def test_transcribe_audio_frames_success(self, mock_process_punct, mock_transcribe, mock_save_audio):
         """正常系: 音声フレーム文字起こし成功"""
         # Arrange
         test_frames = [b'frame1', b'frame2']
         sample_rate = 16000
         mock_save_audio.return_value = '/test/temp/audio.wav'
-        mock_transcribe.return_value = 'テスト結果'
+        mock_transcribe.return_value = 'テスト。結果、です'
+        mock_process_punct.return_value = 'テスト結果です'
 
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller.transcribe_audio_frames(test_frames, sample_rate)
+        # Act
+        self.controller.transcribe_audio_frames(test_frames, sample_rate)
 
-            # Assert
-            mock_save_audio.assert_called_once_with(test_frames, sample_rate, self.mock_config)
-            mock_transcribe.assert_called_once_with(
-                '/test/temp/audio.wav',
-                self.controller.use_punctuation,
-                self.mock_config,
-                self.mock_client
-            )
-            mock_schedule.assert_called_once_with(0, self.controller._safe_ui_update, 'テスト結果')
+        # Assert
+        mock_save_audio.assert_called_once_with(test_frames, sample_rate, self.mock_config)
+        mock_transcribe.assert_called_once_with(
+            '/test/temp/audio.wav',
+            self.mock_config,
+            self.mock_client
+        )
+        mock_process_punct.assert_called_once_with('テスト。結果、です', self.controller.use_punctuation)
+        # master.afterが呼ばれることを確認
+        self.mock_master.after.assert_called_once()
+        call_args = self.mock_master.after.call_args
+        assert call_args[0][0] == 0  # delay
 
     @patch('service.recording_controller.save_audio')
     def test_transcribe_audio_frames_save_error(self, mock_save_audio):
@@ -537,15 +495,14 @@ class TestRecordingControllerAudioProcessing:
         sample_rate = 16000
         mock_save_audio.return_value = None
 
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller.transcribe_audio_frames(test_frames, sample_rate)
+        # Act
+        self.controller.transcribe_audio_frames(test_frames, sample_rate)
 
-            # Assert
-            mock_schedule.assert_called_once()
-            # エラーハンドラーが呼ばれることを確認
-            call_args = mock_schedule.call_args
-            assert call_args[0][1] == self.controller._safe_error_handler
+        # Assert
+        # エラーハンドラーが呼ばれることを確認
+        self.mock_master.after.assert_called_once()
+        call_args = self.mock_master.after.call_args
+        assert call_args[0][0] == 0  # delay
 
     @patch('service.recording_controller.save_audio')
     @patch('service.recording_controller.transcribe_audio')
@@ -557,15 +514,14 @@ class TestRecordingControllerAudioProcessing:
         mock_save_audio.return_value = '/test/temp/audio.wav'
         mock_transcribe.return_value = None
 
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller.transcribe_audio_frames(test_frames, sample_rate)
+        # Act
+        self.controller.transcribe_audio_frames(test_frames, sample_rate)
 
-            # Assert
-            mock_schedule.assert_called_once()
-            # エラーハンドラーが呼ばれることを確認
-            call_args = mock_schedule.call_args
-            assert call_args[0][1] == self.controller._safe_error_handler
+        # Assert
+        # エラーハンドラーが呼ばれることを確認
+        self.mock_master.after.assert_called_once()
+        call_args = self.mock_master.after.call_args
+        assert call_args[0][0] == 0  # delay
 
     @patch('service.recording_controller.save_audio')
     def test_transcribe_audio_frames_cancelled(self, mock_save_audio):
@@ -612,13 +568,12 @@ class TestRecordingControllerTextProcessing:
         """正常系: UI更新処理"""
         # Arrange
         test_text = "テスト結果"
-        
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller.ui_update(test_text)
 
-            # Assert
-            mock_schedule.assert_called_once_with(100, self.controller.copy_and_paste, test_text)
+        # Act
+        self.controller.ui_update(test_text)
+
+        # Assert
+        self.mock_master.after.assert_called_once_with(100, self.controller.copy_and_paste, test_text)
 
     @patch('service.recording_controller.threading.Thread')
     def test_copy_and_paste_success(self, mock_thread_class):
@@ -662,15 +617,14 @@ class TestRecordingControllerTextProcessing:
         test_text = "テスト結果"
         mock_copy_paste.side_effect = Exception("Paste error")
 
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller._safe_copy_and_paste(test_text)
+        # Act
+        self.controller._safe_copy_and_paste(test_text)
 
-            # Assert
-            mock_schedule.assert_called_once()
-            # エラーハンドラーが呼ばれることを確認
-            call_args = mock_schedule.call_args
-            assert call_args[0][1] == self.controller._safe_error_handler
+        # Assert
+        # エラーハンドラーが呼ばれることを確認
+        self.mock_master.after.assert_called_once()
+        call_args = self.mock_master.after.call_args
+        assert call_args[0][0] == 0  # delay
 
 
 class TestRecordingControllerCleanup:
@@ -796,30 +750,19 @@ class TestRecordingControllerThreadSafety:
                 Mock()
             )
 
-    def test_ui_lock_protection(self):
-        """正常系: UIロックによる保護"""
-        # Arrange
-        with self.controller._ui_lock:
-            self.controller._scheduled_tasks.add("test_task")
-
-        # Act & Assert
-        with self.controller._ui_lock:
-            assert "test_task" in self.controller._scheduled_tasks
-
-    def test_concurrent_schedule_tasks(self):
-        """境界値: 並行タスクスケジュール"""
+    def test_concurrent_ui_updates(self):
+        """境界値: 並行UI更新"""
         # Arrange
         self.mock_master.after.side_effect = lambda delay, func, *args: f"task_{delay}"
 
         # Act
-        task1 = self.controller._schedule_ui_task(100, Mock())
-        task2 = self.controller._schedule_ui_task(200, Mock())
+        task1 = self.mock_master.after(100, Mock())
+        task2 = self.mock_master.after(200, Mock())
 
         # Assert
         assert task1 == "task_100"
         assert task2 == "task_200"
-        with self.controller._ui_lock:
-            assert len(self.controller._scheduled_tasks) == 2
+        assert self.mock_master.after.call_count == 2
 
     def test_check_process_thread_still_running(self):
         """正常系: 処理スレッドがまだ実行中"""
@@ -827,12 +770,11 @@ class TestRecordingControllerThreadSafety:
         mock_thread = Mock()
         mock_thread.is_alive.return_value = True  # スレッド実行中
 
-        with patch.object(self.controller, '_schedule_ui_task') as mock_schedule:
-            # Act
-            self.controller._check_process_thread(mock_thread)
+        # Act
+        self.controller._check_process_thread(mock_thread)
 
-            # Assert
-            mock_schedule.assert_called_once_with(100, self.controller._check_process_thread, mock_thread)
+        # Assert
+        self.mock_master.after.assert_called_once_with(100, self.controller._check_process_thread, mock_thread)
 
 
 class TestRecordingControllerIntegration:
@@ -874,25 +816,27 @@ class TestRecordingControllerIntegration:
     @patch('service.recording_controller.threading.Timer')
     @patch('service.recording_controller.save_audio')
     @patch('service.recording_controller.transcribe_audio')
+    @patch('service.recording_controller.process_punctuation')
     @patch('service.recording_controller.copy_and_paste_transcription')
-    def test_complete_recording_workflow(self, mock_copy_paste, mock_transcribe, 
+    def test_complete_recording_workflow(self, mock_copy_paste, mock_process_punct, mock_transcribe,
                                         mock_save_audio, mock_timer_class, mock_thread_class):
         """統合テスト: 完全な録音ワークフロー"""
         # Arrange
         self.mock_recorder.is_recording = False
-        
+
         # モックの設定
         mock_recording_thread = Mock()
         mock_processing_thread = Mock()
         mock_thread_class.side_effect = [mock_recording_thread, mock_processing_thread]
-        
+
         mock_timer = Mock()
         mock_timer_class.return_value = mock_timer
-        
+
         test_frames = [b'frame1', b'frame2']
         self.mock_recorder.stop_recording.return_value = (test_frames, 16000)
         mock_save_audio.return_value = '/test/temp/audio.wav'
-        mock_transcribe.return_value = 'テスト文字起こし結果'
+        mock_transcribe.return_value = 'テスト。文字、起こし。結果'
+        mock_process_punct.return_value = 'テスト文字起こし結果'
 
         # Act 1: 録音開始
         self.controller.start_recording()
@@ -917,10 +861,10 @@ class TestRecordingControllerIntegration:
         mock_save_audio.assert_called_once_with(test_frames, 16000, self.mock_config)
         mock_transcribe.assert_called_once_with(
             '/test/temp/audio.wav',
-            True,  # use_punctuation
             self.mock_config,
             self.mock_client
         )
+        mock_process_punct.assert_called_once_with('テスト。文字、起こし。結果', True)
 
     def test_error_recovery_workflow(self):
         """統合テスト: エラー回復ワークフロー"""

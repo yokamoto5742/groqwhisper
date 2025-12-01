@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from external_service.groq_api import transcribe_audio
 from service.audio_recorder import save_audio
-from service.text_processing import copy_and_paste_transcription
+from service.text_processing import copy_and_paste_transcription, process_punctuation
 from utils.config_manager import get_config_value
 
 
@@ -39,9 +39,6 @@ class RecordingController:
         self.five_second_notification_shown: bool = False
         self.processing_thread: Optional[threading.Thread] = None
 
-        self._ui_lock = threading.Lock()
-        self._scheduled_tasks = set()
-
         self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
@@ -59,42 +56,6 @@ class RecordingController:
             return False
         except Exception:
             return False
-
-    def _schedule_ui_task(self, delay: int, callback: Callable, *args) -> Optional[str]:
-        if not self._is_ui_valid():
-            logging.warning("UIが無効でタスクをスケジュールできません")
-            return None
-
-        try:
-            task_id = self.master.after(delay, self._safe_ui_task_wrapper, callback, *args)
-            with self._ui_lock:
-                self._scheduled_tasks.add(task_id)
-            return task_id
-        except Exception as e:
-            logging.error(f"UIタスクのスケジュール中にエラー: {str(e)}")
-            return None
-
-    def _safe_ui_task_wrapper(self, callback: Callable, *args):
-        try:
-            with self._ui_lock:
-                self._scheduled_tasks.clear()
-
-            if self._is_ui_valid():
-                callback(*args)
-            else:
-                logging.warning("UIが無効でタスクを実行できません")
-        except Exception as e:
-            logging.error(f"UIタスク実行中にエラー: {str(e)}")
-
-    def _cancel_scheduled_tasks(self):
-        with self._ui_lock:
-            for task_id in self._scheduled_tasks:
-                try:
-                    if self._is_ui_valid():
-                        self.master.after_cancel(task_id)
-                except Exception as e:
-                    logging.debug(f"タスクキャンセル中にエラー: {str(e)}")
-            self._scheduled_tasks.clear()
 
     def _cleanup_temp_files(self):
         try:
@@ -150,17 +111,19 @@ class RecordingController:
         self.recording_timer.start()
 
         self.five_second_notification_shown = False
-        self.five_second_timer = self._schedule_ui_task(
-            (auto_stop_timer - 5) * 1000,
-            self.show_five_second_notification
-        )
+        if self._is_ui_valid():
+            self.five_second_timer = self.master.after(
+                (auto_stop_timer - 5) * 1000,
+                self.show_five_second_notification
+            )
 
     def _safe_record(self):
         try:
             self.recorder.record()
         except Exception as e:
             logging.error(f"録音中にエラーが発生しました: {str(e)}")
-            self._schedule_ui_task(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+            if self._is_ui_valid():
+                self.master.after(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
 
     def stop_recording(self):
         try:
@@ -180,13 +143,15 @@ class RecordingController:
             self._safe_error_handler(f"録音の停止中にエラーが発生しました: {str(e)}")
 
     def auto_stop_recording(self):
-        self._schedule_ui_task(0, self._auto_stop_recording_ui)
+        if self._is_ui_valid():
+            self.master.after(0, self._auto_stop_recording_ui)
 
     def _auto_stop_recording_ui(self):
         try:
             self.show_notification("自動停止", "アプリケーションを終了します")
             self._stop_recording_process()
-            self._schedule_ui_task(1000, self.master.quit)
+            if self._is_ui_valid():
+                self.master.after(1000, self.master.quit)
         except Exception as e:
             logging.error(f"自動停止処理中にエラー: {str(e)}")
 
@@ -205,7 +170,8 @@ class RecordingController:
             )
             self.processing_thread.start()
 
-            self._schedule_ui_task(100, self._check_process_thread, self.processing_thread)
+            if self._is_ui_valid():
+                self.master.after(100, self._check_process_thread, self.processing_thread)
         except Exception as e:
             logging.error(f"録音停止処理中にエラー: {str(e)}")
             self._safe_error_handler(f"録音停止処理中にエラー: {str(e)}")
@@ -220,7 +186,8 @@ class RecordingController:
                 return
 
             self.ui_callbacks['update_status_label']("テキスト出力中...")
-            self._schedule_ui_task(100, self._check_process_thread, thread)
+            if self._is_ui_valid():
+                self.master.after(100, self._check_process_thread, thread)
         except Exception as e:
             logging.error(f"処理スレッドチェック中にエラー: {str(e)}")
 
@@ -247,11 +214,11 @@ class RecordingController:
 
             transcription = transcribe_audio(
                 file_path,
-                self.use_punctuation,
                 self.config,
                 self.client
             )
             if transcription:
+                transcription = process_punctuation(transcription, self.use_punctuation)
                 self._safe_ui_update(transcription)
             else:
                 raise ValueError('音声ファイルの処理に失敗しました')
@@ -282,7 +249,6 @@ class RecordingController:
             logging.info("文字起こし開始")
             transcription = transcribe_audio(
                 temp_audio_file,
-                self.use_punctuation,
                 self.config,
                 self.client
             )
@@ -290,15 +256,19 @@ class RecordingController:
             if not transcription:
                 raise ValueError("音声ファイルの文字起こしに失敗しました")
 
+            transcription = process_punctuation(transcription, self.use_punctuation)
+
             if self.cancel_processing:
                 logging.info("処理がキャンセルされました")
                 return
 
-            self._schedule_ui_task(0, self._safe_ui_update, transcription)
+            if self._is_ui_valid():
+                self.master.after(0, self._safe_ui_update, transcription)
 
         except Exception as e:
             logging.error(f"文字起こし処理中にエラー: {str(e)}")
-            self._schedule_ui_task(0, self._safe_error_handler, str(e))
+            if self._is_ui_valid():
+                self.master.after(0, self._safe_error_handler, str(e))
 
     def _safe_ui_update(self, text: str):
         try:
@@ -321,7 +291,8 @@ class RecordingController:
     def ui_update(self, text: str):
         try:
             paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
-            self._schedule_ui_task(paste_delay, self.copy_and_paste, text)
+            if self._is_ui_valid():
+                self.master.after(paste_delay, self.copy_and_paste, text)
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
 
@@ -340,12 +311,12 @@ class RecordingController:
             copy_and_paste_transcription(text, self.replacements, self.config)
         except Exception as e:
             logging.error(f"コピー&ペースト実行中にエラー: {str(e)}")
-            self._schedule_ui_task(0, self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
+            if self._is_ui_valid():
+                self.master.after(0, self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
 
     def cleanup(self):
         try:
             self.cancel_processing = True
-            self._cancel_scheduled_tasks()
 
             if self.recorder.is_recording:
                 self.stop_recording()

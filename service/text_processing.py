@@ -15,6 +15,22 @@ logger = logging.getLogger(__name__)
 _clipboard_lock = threading.Lock()
 
 
+def process_punctuation(text: str, use_punctuation: bool) -> str:
+    """句読点を処理する"""
+    if use_punctuation:
+        return text
+
+    try:
+        result = text.replace('。', '').replace('、', '')
+        return result
+    except (AttributeError, TypeError) as e:
+        logging.error(f"句読点処理中にタイプエラー: {str(e)}")
+        return text
+    except Exception as e:
+        logging.error(f"句読点処理中に予期しないエラー: {str(e)}")
+        return text
+
+
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
