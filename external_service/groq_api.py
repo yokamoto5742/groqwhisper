@@ -1,3 +1,4 @@
+import configparser
 import logging
 import os
 import traceback
@@ -59,7 +60,7 @@ def convert_response_to_text(response) -> Optional[str]:
 
 def transcribe_audio(
         audio_file_path: str,
-        config: dict,
+        config: configparser.ConfigParser,
         client: Groq
 ) -> Optional[str]:
     is_valid, error_msg = validate_audio_file(audio_file_path)

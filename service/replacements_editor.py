@@ -1,14 +1,14 @@
+import configparser
 import logging
 import os
 import tkinter as tk
-from tkinter import messagebox,ttk
-from typing import Dict, Any
+from tkinter import messagebox, ttk
 
 from utils.config_manager import get_config_value
 
 
 class ReplacementsEditor:
-    def __init__(self, parent: tk.Tk, config: Dict[str, Any]):
+    def __init__(self, parent: tk.Tk, config: configparser.ConfigParser):
         if 'PATHS' not in config or 'replacements_file' not in config['PATHS']:
             raise ValueError('設定ファイルにreplacements_fileのパスがありません')
 

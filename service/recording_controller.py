@@ -1,3 +1,4 @@
+import configparser
 import glob
 import logging
 import os
@@ -17,7 +18,7 @@ class RecordingController:
     def __init__(
             self,
             master: tk.Tk,
-            config: Dict[str, Any],
+            config: configparser.ConfigParser,
             recorder: Any,
             client: Any,
             replacements: Dict[str, str],

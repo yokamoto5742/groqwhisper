@@ -1,6 +1,7 @@
+import configparser
 import logging
 import tkinter as tk
-from typing import Any, Callable, Dict
+from typing import Callable
 import keyboard
 
 
@@ -8,7 +9,7 @@ class KeyboardHandler:
     def __init__(
             self,
             master: tk.Tk,
-            config: Dict[str, Any],
+            config: configparser.ConfigParser,
             toggle_recording_callback: Callable,
             toggle_punctuation_callback: Callable,
             reload_audio_callback: Callable,
@@ -45,7 +46,7 @@ class KeyboardHandler:
             )
 
         except Exception as e:
-            logging.error(f"キーボードリスナーの設定中にエラーが発生しました: {str(e)}")
+            logging.error(f'キーボードリスナーの設定中にエラーが発生しました: {str(e)}')
             raise
 
     def _handle_toggle_recording_key(self, _: keyboard.KeyboardEvent):
@@ -65,4 +66,4 @@ class KeyboardHandler:
         try:
             keyboard.unhook_all()
         except Exception as e:
-            logging.error(f"キーボードリスナーの解除中にエラーが発生しました: {str(e)}")
+            logging.error(f'キーボードリスナーの解放中にエラーが発生しました: {str(e)}')

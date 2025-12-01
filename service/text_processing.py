@@ -1,3 +1,4 @@
+import configparser
 import logging
 import os
 import sys
@@ -33,7 +34,7 @@ def process_punctuation(text: str, use_punctuation: bool) -> str:
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS  # type: ignore[attr-defined]
     else:
         base_path = os.path.dirname(__file__)
 
@@ -108,7 +109,7 @@ def replace_text(text: str, replacements: Dict[str, str]) -> str:
 def copy_and_paste_transcription(
         text: str,
         replacements: Dict[str, str],
-        config: Dict[str, Dict[str, str]]
+        config: configparser.ConfigParser
 ):
     if not text:
         logging.warning("空のテキスト")

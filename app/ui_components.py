@@ -1,9 +1,10 @@
+import configparser
 import glob
 import logging
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Dict, Optional
 
 from service.replacements_editor import ReplacementsEditor
 
@@ -11,7 +12,7 @@ class UIComponents:
     def __init__(
             self,
             master: tk.Tk,
-            config: Dict[str, Any],
+            config: configparser.ConfigParser,
             callbacks: Dict[str, Callable]
     ):
         self.master = master
@@ -101,16 +102,19 @@ class UIComponents:
         self._toggle_punctuation = callbacks.get('toggle_punctuation', self._toggle_punctuation)
 
     def update_record_button(self, is_recording: bool):
+        assert self.record_button is not None
         self.record_button.config(
             text=f'音声入力{"停止" if is_recording else "開始"}:{self.config["KEYS"]["TOGGLE_RECORDING"]}'
         )
 
     def update_punctuation_button(self, use_punctuation: bool):
+        assert self.punctuation_status_label is not None
         self.punctuation_status_label.config(
             text=f'【現在句読点{"あり】" if use_punctuation else "なし】"}'
         )
 
     def update_status_label(self, text: str):
+        assert self.status_label is not None
         self.status_label.config(text=text)
 
     def reload_latest_audio(self):

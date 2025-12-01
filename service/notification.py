@@ -1,10 +1,11 @@
+import configparser
 import logging
 import tkinter as tk
-from typing import Dict, Any, Optional
+from typing import Optional
 
 
 class NotificationManager:
-    def __init__(self, master: tk.Tk, config: Dict[str, Any]):
+    def __init__(self, master: tk.Tk, config: configparser.ConfigParser):
         self.master = master
         self.config = config
         self.current_popup: Optional[tk.Toplevel] = None
@@ -55,8 +56,8 @@ class NotificationManager:
 
     def _update_status_label(self, text: str):
         status_label = self.master.children.get('status_label')
-        if status_label:
-            status_label.config(text=text)
+        if status_label is not None and hasattr(status_label, 'config'):
+            status_label.config(text=text)  # type: ignore[union-attr]
 
     def cleanup(self):
         if self.current_popup:

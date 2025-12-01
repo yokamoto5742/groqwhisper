@@ -1,3 +1,4 @@
+import configparser
 import logging
 import os
 import wave
@@ -8,7 +9,7 @@ import pyaudio
 
 
 class AudioRecorder:
-    def __init__(self, config: dict):
+    def __init__(self, config: configparser.ConfigParser):
         self.sample_rate = int(config['AUDIO']['SAMPLE_RATE'])
         self.channels = int(config['AUDIO']['CHANNELS'])
         self.chunk = int(config['AUDIO']['CHUNK'])
@@ -72,7 +73,7 @@ class AudioRecorder:
                 break
 
 
-def save_audio(frames: List[bytes], sample_rate: int, config: dict) -> Optional[str]:
+def save_audio(frames: List[bytes], sample_rate: int, config: configparser.ConfigParser) -> Optional[str]:
     try:
         temp_dir = config['PATHS']['TEMP_DIR']
         if not os.path.exists(temp_dir):
