@@ -2,6 +2,7 @@ import configparser
 import glob
 import logging
 import os
+import queue
 import threading
 import time
 import tkinter as tk
@@ -45,14 +46,69 @@ class RecordingController:
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
 
+        # スレッドセーフなUI更新用キュー
+        self._ui_queue: queue.Queue = queue.Queue()
+        self._ui_lock = threading.Lock()
+        self._is_shutting_down = False
+
         os.makedirs(self.temp_dir, exist_ok=True)
         self._cleanup_temp_files()
 
-    def _is_ui_valid(self) -> bool:
+        self._start_ui_queue_processor()
+
+    def _start_ui_queue_processor(self):
+
+        def process_queue():
+            if self._is_shutting_down:
+                return
+
+            try:
+                for _ in range(10):
+                    try:
+                        callback, args = self._ui_queue.get_nowait()
+                        try:
+                            callback(*args)
+                        except tk.TclError as e:
+                            logging.warning(f"UIコールバック実行中にTclError: {str(e)}")
+                        except Exception as e:
+                            logging.error(f"UIコールバック実行中にエラー: {str(e)}")
+                    except queue.Empty:
+                        break
+            except Exception as e:
+                logging.error(f"UIキュー処理中にエラー: {str(e)}")
+            finally:
+                if not self._is_shutting_down and self._is_ui_valid():
+                    try:
+                        self.master.after(50, process_queue)
+                    except tk.TclError:
+                        pass
+
+        if self._is_ui_valid():
+            try:
+                self.master.after(50, process_queue)
+            except tk.TclError as e:
+                logging.error(f"UIキュー処理開始に失敗: {str(e)}")
+
+    def _schedule_ui_callback(self, callback: Callable, *args):
+        """スレッドセーフにUIコールバックをスケジュール"""
+        if self._is_shutting_down:
+            logging.debug("シャットダウン中のためUIコールバックをスキップ")
+            return
+
         try:
-            return (self.master is not None and
-                    hasattr(self.master, 'winfo_exists') and
-                    self.master.winfo_exists())
+            self._ui_queue.put_nowait((callback, args))
+        except Exception as e:
+            logging.error(f"UIコールバックのキューイングに失敗: {str(e)}")
+
+    def _is_ui_valid(self) -> bool:
+        if self._is_shutting_down:
+            return False
+
+        try:
+            with self._ui_lock:
+                return (self.master is not None and
+                        hasattr(self.master, 'winfo_exists') and
+                        self.master.winfo_exists())
         except tk.TclError:
             return False
         except Exception:
@@ -123,8 +179,7 @@ class RecordingController:
             self.recorder.record()
         except Exception as e:
             logging.error(f"録音中にエラーが発生しました: {str(e)}")
-            if self._is_ui_valid():
-                self.master.after(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+            self._schedule_ui_callback(self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
 
     def stop_recording(self):
         try:
@@ -144,8 +199,7 @@ class RecordingController:
             self._safe_error_handler(f"録音の停止中にエラーが発生しました: {str(e)}")
 
     def auto_stop_recording(self):
-        if self._is_ui_valid():
-            self.master.after(0, self._auto_stop_recording_ui)
+        self._schedule_ui_callback(self._auto_stop_recording_ui)
 
     def _auto_stop_recording_ui(self):
         try:
@@ -257,28 +311,35 @@ class RecordingController:
             if not transcription:
                 raise ValueError("音声ファイルの文字起こしに失敗しました")
 
+            logging.debug(f"句読点処理開始: use_punctuation={self.use_punctuation}")
             transcription = process_punctuation(transcription, self.use_punctuation)
+            logging.debug("句読点処理完了")
 
             if self.cancel_processing:
                 logging.info("処理がキャンセルされました")
                 return
 
-            if self._is_ui_valid():
-                self.master.after(0, self._safe_ui_update, transcription)
+            logging.debug("UI更新をスケジュール")
+            self._schedule_ui_callback(self._safe_ui_update, transcription)
+            logging.debug("UI更新スケジュール完了")
 
         except Exception as e:
             logging.error(f"文字起こし処理中にエラー: {str(e)}")
-            if self._is_ui_valid():
-                self.master.after(0, self._safe_error_handler, str(e))
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
+            self._schedule_ui_callback(self._safe_error_handler, str(e))
 
     def _safe_ui_update(self, text: str):
         try:
+            logging.debug(f"_safe_ui_update開始: text長={len(text)}")
             if self._is_ui_valid():
                 self.ui_update(text)
             else:
                 logging.warning("UIが無効なため、UI更新をスキップします")
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
 
     def _safe_error_handler(self, error_msg: str):
         try:
@@ -291,14 +352,19 @@ class RecordingController:
 
     def ui_update(self, text: str):
         try:
+            logging.debug(f"ui_update開始: text長={len(text)}")
             paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
             if self._is_ui_valid():
                 self.master.after(paste_delay, self.copy_and_paste, text)
+                logging.debug(f"copy_and_pasteをスケジュール: delay={paste_delay}ms")
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
 
     def copy_and_paste(self, text: str):
         try:
+            logging.debug(f"copy_and_paste開始: text長={len(text)}")
             threading.Thread(
                 target=self._safe_copy_and_paste,
                 args=(text,),
@@ -309,14 +375,19 @@ class RecordingController:
 
     def _safe_copy_and_paste(self, text: str):
         try:
+            logging.debug("_safe_copy_and_paste開始")
             copy_and_paste_transcription(text, self.replacements, self.config)
+            logging.debug("_safe_copy_and_paste完了")
         except Exception as e:
             logging.error(f"コピー&ペースト実行中にエラー: {str(e)}")
-            if self._is_ui_valid():
-                self.master.after(0, self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
+            self._schedule_ui_callback(self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
 
     def cleanup(self):
         try:
+            logging.info("RecordingController クリーンアップ開始")
+            self._is_shutting_down = True
             self.cancel_processing = True
 
             if self.recorder.is_recording:
