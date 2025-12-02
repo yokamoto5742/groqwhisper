@@ -17,7 +17,6 @@ _clipboard_lock = threading.Lock()
 
 
 def process_punctuation(text: str, use_punctuation: bool) -> str:
-    """句読点を処理"""
     if use_punctuation:
         return text
 
@@ -34,7 +33,7 @@ def process_punctuation(text: str, use_punctuation: bool) -> str:
 
 def get_replacements_path():
     if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS  # type: ignore[attr-defined]
+        base_path = sys._MEIPASS
     else:
         base_path = os.path.dirname(__file__)
 

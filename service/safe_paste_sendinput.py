@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def safe_clipboard_copy(text: str) -> bool:
-    """テキストをクリップボードにコピー"""
+    """テキストを安全にクリップボードへコピー"""
     if not text:
         return False
 
@@ -34,16 +34,15 @@ def safe_clipboard_copy(text: str) -> bool:
 
 
 def safe_paste_text() -> bool:
-    """クリップボードの内容をCtrl+Vで貼り付け"""
+    """クリップボードの内容を貼り付け"""
     try:
         current_text = pyperclip.paste()
         if not current_text:
             logger.warning("クリップボードが空です")
             return False
 
-        # Ctrl+V 送信 (keyboardライブラリを使用)
         keyboard.send('ctrl+v')
-        time.sleep(0.1)  # 貼り付け完了待ち
+        time.sleep(0.1)
         return True
     except Exception as e:
         logger.error(f"貼り付け操作に失敗: {e}")
@@ -51,9 +50,9 @@ def safe_paste_text() -> bool:
 
 
 def is_paste_available() -> bool:
-    """貼り付け機能が利用可能かチェック"""
+    """貼り付け可能かどうかをチェック"""
     try:
-        # keyboardライブラリが利用可能であれば常にTrue
+        # keyboardライブラリが利用可能であればTrue
         return True
     except Exception as e:
         logger.error(f"貼り付け機能利用不可: {e}")

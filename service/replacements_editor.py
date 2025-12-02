@@ -14,7 +14,7 @@ class ReplacementsEditor:
 
         self.config = config
         self.window = tk.Toplevel(parent)
-        self.window.title('テキスト置換登録( 置換前 , 置換後 )')
+        self.window.title('置換単語登録( 置換前 , 置換後 )')
         window_width = get_config_value(self.config, 'EDITOR', 'width', 400)
         window_height = get_config_value(self.config, 'EDITOR', 'height', 700)
         self.window.geometry(f'{window_width}x{window_height}')

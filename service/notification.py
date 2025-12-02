@@ -10,7 +10,7 @@ class NotificationManager:
         self.config = config
         self.current_popup: Optional[tk.Toplevel] = None
 
-    def show_timed_message(self, title: str, message: str, duration: int = 3000):
+    def show_timed_message(self, title: str, message: str, duration: int = 2000):
         if self.current_popup:
             try:
                 self.current_popup.destroy()

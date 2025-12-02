@@ -68,7 +68,7 @@ class RecordingController:
                 if current_time - file_modified > timedelta(minutes=self.cleanup_minutes):
                     try:
                         os.remove(file_path)
-                        logging.info(f"古い一時ファイルを削除しました: {file_path}")
+                        logging.info(f"古い音声ファイルを削除しました: {file_path}")
                     except Exception as e:
                         logging.error(f"ファイル削除中にエラーが発生しました: {file_path}, {e}")
         except Exception as e:
@@ -136,7 +136,7 @@ class RecordingController:
                     if self._is_ui_valid():
                         self.master.after_cancel(self.five_second_timer)
                 except Exception:
-                    pass  # 既にキャンセルされている可能性があるため無視
+                    pass
                 self.five_second_timer = None
 
             self._stop_recording_process()
@@ -159,7 +159,7 @@ class RecordingController:
     def _stop_recording_process(self):
         try:
             frames, sample_rate = self.recorder.stop_recording()
-            logging.info(f"録音データを取得しました")
+            logging.info(f"音声データを取得しました")
 
             self.ui_callbacks['update_record_button'](False)
             self.ui_callbacks['update_status_label']("テキスト出力中...")

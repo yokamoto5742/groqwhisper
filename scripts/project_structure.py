@@ -49,7 +49,6 @@ class ProjectStructureGenerator:
         root = Path(root_path).resolve()
 
         output_lines.extend([
-            "=" * 60,
             f"プロジェクト構造: {root.name}",
             f"パス: {root}",
             f"生成日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -113,7 +112,6 @@ class ProjectStructureGenerator:
 
 
 def main():
-    # 現在のディレクトリがscriptsの場合、親ディレクトリを対象とする
     current_dir = os.path.basename(os.getcwd())
     default_path = ".." if current_dir == "scripts" else "."
 
@@ -164,7 +162,6 @@ def main():
             show_size=args.show_size
         )
 
-        # ファイルに保存
         if generator.save_to_file(structure, args.output):
             print(f"ファイルの場所: {os.path.abspath(args.output)}")
 
