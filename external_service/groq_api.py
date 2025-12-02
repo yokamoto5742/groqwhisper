@@ -18,28 +18,28 @@ def setup_groq_client() -> Groq:
 
 
 def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
-    """音声ファイルの存在と有効性を検証する
+    """音声ファイルの存在と有効性を検証
 
     Returns:
         tuple[bool, Optional[str]]: (検証成功, エラーメッセージ)
     """
     if not file_path:
-        return False, "音声ファイルパスが未指定"
+        return False, "音声ファイルパスが未指定です"
 
     if not os.path.exists(file_path):
         return False, f"音声ファイルが存在しません: {file_path}"
 
     file_size = os.path.getsize(file_path)
     if file_size == 0:
-        return False, "音声ファイルのサイズが0バイトです"
+        return False, "音声ファイルサイズが0バイトです"
 
     return True, None
 
 
 def convert_response_to_text(response) -> Optional[str]:
-    """APIレスポンスをテキストに変換する"""
+    """APIレスポンスをテキストに変換"""
     if response is None:
-        logging.error("APIからのレスポンスがNoneです")
+        logging.error("APIからのレスポンスが空です")
         return None
 
     try:
@@ -110,12 +110,4 @@ def transcribe_audio(
         logging.error(f"文字起こしエラー: {str(e)}")
         logging.error(f"エラーのタイプ: {type(e).__name__}")
         logging.debug(f"詳細: {traceback.format_exc()}")
-
-        try:
-            logging.error(f"音声ファイルパス: {audio_file_path}")
-            logging.error(f"設定ファイル MODEL: {config.get('WHISPER', {}).get('MODEL', 'NOT_SET')}")
-            logging.error(f"設定ファイル LANGUAGE: {config.get('WHISPER', {}).get('LANGUAGE', 'NOT_SET')}")
-        except Exception as debug_error:
-            logging.error(f"デバッグ情報取得エラー: {str(debug_error)}")
-
         return None
